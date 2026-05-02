@@ -16,6 +16,7 @@ from PyQt6.QtWidgets import (
     QVBoxLayout, QWidget,
 )
 
+from .. import __version__
 from ..config_io import load_config, save_config
 from ..models import AppConfig, AppSettings, CommandEntry, PortRangeExhaustedError
 from ..settings_io import load_settings, save_settings
@@ -94,7 +95,7 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("ProxyTunnel AppLauncher")
+        self.setWindowTitle(f"ProxyTunnel AppLauncher  v{__version__}")
         self.resize(1100, 660)
         if os.path.exists("logo.png"):
             self.setWindowIcon(QIcon("logo.png"))
