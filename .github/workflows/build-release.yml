@@ -5,6 +5,9 @@ on:
     types: [published]
   workflow_dispatch:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build:
     strategy:
@@ -94,9 +97,11 @@ jobs:
             --enable-plugin=pyqt6 \
             --linux-onefile-icon=logo.png \
             --include-data-files=logo.ico=logo.ico \
+            --output-dir=dist \
             --output-filename=ProxyTunnelAppLauncher \
             --assume-yes-for-downloads \
             ./ProxyTunnelAppLauncher.py
+          mv dist/ProxyTunnelAppLauncher ./ProxyTunnelAppLauncher
 
       - name: Compiler avec PyInstaller (macOS)
         if: matrix.label == 'macos'
