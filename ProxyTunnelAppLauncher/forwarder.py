@@ -110,6 +110,19 @@ class SimpleForwarder:
             threading.Thread(target=self._handle_client, args=(client_sock,), daemon=True).start()
         self.log("DEBUG", "accept loop ended")
 
+    @staticmethod
+    def _enable_keepalive(sock):
+        try:
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+            if sys.platform == "win32":
+                sock.ioctl(socket.SIO_KEEPALIVE_VALS, (1, 60_000, 10_000))
+            elif sys.platform.startswith("linux"):
+                sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE,  60)
+                sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, 10)
+                sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT,    6)
+        except Exception:
+            pass
+
     def _handle_client(self, client_sock):
         remote = socks.socksocket()
         if self.socks_user:
@@ -120,6 +133,7 @@ class SimpleForwarder:
         try:
             remote.settimeout(10)
             remote.connect((self.target_host, self.target_port))
+            remote.settimeout(None)  # mode bloquant pour le transfert
         except Exception as e:
             self.log("ERROR", "connect failed via socks:", e)
             try:
@@ -127,6 +141,8 @@ class SimpleForwarder:
             except Exception:
                 pass
             return
+        self._enable_keepalive(client_sock)
+        self._enable_keepalive(remote)
         with self._connections_lock:
             self._connections.append((client_sock, remote))
         t1 = threading.Thread(target=self._copy_loop, args=(client_sock, remote), daemon=True)

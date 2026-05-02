@@ -2,4 +2,4 @@
 try:
     from ._version import __version__
 except ImportError:
-    __version__ = "0.1.0-dev"
+    __version__ = "0.1.1-dev"
