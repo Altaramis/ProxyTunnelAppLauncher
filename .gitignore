@@ -1,0 +1,33 @@
+# Données locales sensibles — ne pas publier
+configs.json
+settings.json
+
+# Logs
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Environnements virtuels
+venv*/
+.venv/
+env/
+
+# Build Nuitka
+*.dist/
+*.build/
+*.onefile-build/
+*.exe
+*.spec
+
+# Build Nuitka.md — instructions de build privées
+Nuitka.md
+
+# IDE
+.idea/
+.vscode/
+*.suo
+*.user

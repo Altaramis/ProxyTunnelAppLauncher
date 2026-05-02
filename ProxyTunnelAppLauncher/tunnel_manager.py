@@ -1,0 +1,192 @@
+from __future__ import annotations
+
+import os
+import random
+import shlex
+import socket
+import subprocess
+import sys
+import threading
+from dataclasses import dataclass, field
+from typing import Callable, Dict, Optional
+
+from PyQt6.QtCore import QObject, pyqtSignal
+
+from .forwarder import SimpleForwarder
+from .models import CommandEntry, PortRangeExhaustedError, ProxyProfile, resolve_text
+
+
+@dataclass
+class TunnelSession:
+    command_name: str
+    local_port: int
+    forwarder: SimpleForwarder
+    process: Optional[subprocess.Popen] = None
+
+
+class TunnelManager(QObject):
+    session_ended = pyqtSignal(str)   # command_name
+
+    def __init__(self, log_fn: Optional[Callable] = None,
+                 port_range: tuple = (20000, 30000), parent=None):
+        super().__init__(parent)
+        self._port_range = port_range
+        self._sessions: Dict[str, TunnelSession] = {}
+        self._lock = threading.Lock()
+        self.log_fn: Callable = log_fn or (lambda level, msg: None)
+        self.global_vars: Dict[str, str] = {}
+
+    # ── Public API ────────────────────────────────────────────────────────
+
+    def set_port_range(self, range_min: int, range_max: int):
+        self._port_range = (range_min, range_max)
+
+    def is_running(self, command_name: str) -> bool:
+        return command_name in self._sessions
+
+    def get_local_port(self, command_name: str) -> Optional[int]:
+        s = self._sessions.get(command_name)
+        return s.local_port if s else None
+
+    def launch(self, cmd: CommandEntry, proxy: ProxyProfile) -> TunnelSession:
+        with self._lock:
+            if cmd.name in self._sessions:
+                raise RuntimeError(f"Commande '{cmd.name}' déjà en cours d'exécution")
+            port = self._allocate_port()
+
+        f = SimpleForwarder(
+            listen_host="127.0.0.1",
+            listen_port=port,
+            target_host=resolve_text(cmd.target_host, self.global_vars),
+            target_port=cmd.target_port,
+            socks_host=resolve_text(proxy.host, self.global_vars),
+            socks_port=proxy.port,
+            socks_user=proxy.user,
+            socks_pass=proxy.password,
+            logger=lambda level, msg: self.log_fn(level, f"[Tunnel:{cmd.name}] {msg}"),
+        )
+
+        f.start()  # raises OSError if proxy unreachable or port busy
+
+        session = TunnelSession(command_name=cmd.name, local_port=port, forwarder=f)
+
+        with self._lock:
+            self._sessions[cmd.name] = session
+
+        resolved_cmd = resolve_text(cmd.command, self.global_vars, "127.0.0.1", str(port))
+        self.log_fn("INFO", f"[{cmd.name}] tunnel 127.0.0.1:{port} → "
+                            f"{cmd.target_host}:{cmd.target_port}")
+
+        try:
+            args = shlex.split(resolved_cmd)
+            if cmd.console:
+                flags = subprocess.CREATE_NEW_CONSOLE if sys.platform == "win32" else 0
+                proc = subprocess.Popen(args, creationflags=flags)
+            else:
+                proc = subprocess.Popen(
+                    args,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                )
+        except Exception as e:
+            self._teardown(cmd.name)
+            raise RuntimeError(f"Impossible de lancer la commande : {e}") from e
+
+        session.process = proc
+        exe = os.path.splitext(os.path.basename(args[0]))[0] if args else cmd.name
+        self.log_fn("INFO", f"[{cmd.name}] lancé: {resolved_cmd}")
+
+        if not cmd.console:
+            for pipe, level in ((proc.stdout, "INFO"), (proc.stderr, "WARNING")):
+                threading.Thread(
+                    target=self._pipe_reader,
+                    args=(pipe, cmd.name, level, exe),
+                    daemon=True,
+                ).start()
+
+        threading.Thread(
+            target=self._process_watcher,
+            args=(session,),
+            daemon=True,
+        ).start()
+
+        return session
+
+    def kill(self, command_name: str):
+        session = self._sessions.get(command_name)
+        if not session or not session.process:
+            return
+        if session.process.poll() is not None:
+            return
+        try:
+            session.process.terminate()
+            threading.Thread(
+                target=self._kill_after_timeout,
+                args=(session.process, command_name),
+                daemon=True,
+            ).start()
+        except Exception as e:
+            self.log_fn("ERROR", f"[{command_name}] erreur kill: {e}")
+
+    def stop_all(self):
+        for name in list(self._sessions.keys()):
+            self.kill(name)
+
+    # ── Internal ──────────────────────────────────────────────────────────
+
+    def _allocate_port(self) -> int:
+        rmin, rmax = self._port_range
+        used = {s.local_port for s in self._sessions.values()}
+        candidates = [p for p in range(rmin, rmax + 1) if p not in used]
+        random.shuffle(candidates)
+        for port in candidates:
+            try:
+                probe = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                if sys.platform == "win32":
+                    probe.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+                probe.bind(("127.0.0.1", port))
+                probe.close()
+                return port
+            except OSError:
+                continue
+        raise PortRangeExhaustedError(
+            f"Plage de ports épuisée ({rmin}–{rmax}). "
+            "Libérez des ressources ou élargissez la plage dans les paramètres."
+        )
+
+    def _teardown(self, command_name: str):
+        with self._lock:
+            session = self._sessions.pop(command_name, None)
+        if session:
+            session.forwarder.stop()
+            self.log_fn("INFO", f"[{command_name}] tunnel fermé")
+
+    def _process_watcher(self, session: TunnelSession):
+        session.process.wait()
+        code = session.process.returncode
+        lvl = "INFO" if code == 0 else "WARNING"
+        self.log_fn(lvl, f"[{session.command_name}] processus terminé (code {code})")
+        self._teardown(session.command_name)
+        self.session_ended.emit(session.command_name)
+
+    def _pipe_reader(self, pipe, command_name: str, level: str, exe: str):
+        try:
+            for line in pipe:
+                line = line.rstrip("\n\r")
+                if line:
+                    self.log_fn(level, f"[{command_name}][{exe}] {line}")
+        except Exception:
+            pass
+
+    def _kill_after_timeout(self, proc: subprocess.Popen, command_name: str):
+        try:
+            proc.wait(timeout=3)
+        except subprocess.TimeoutExpired:
+            try:
+                proc.kill()
+                self.log_fn("WARNING", f"[{command_name}] tué de force (SIGKILL)")
+            except Exception:
+                pass
