@@ -98,7 +98,6 @@ jobs:
             --output-filename=ProxyTunnelAppLauncher \
             --assume-yes-for-downloads \
             ./ProxyTunnelAppLauncher.py
-          mv dist/ProxyTunnelAppLauncher ./ProxyTunnelAppLauncher
 
       - name: Compiler avec PyInstaller (macOS)
         if: matrix.label == 'macos'
@@ -110,7 +109,6 @@ jobs:
             --add-data "logo.ico:." \
             --name ProxyTunnelAppLauncher \
             ./ProxyTunnelAppLauncher.py
-          mv dist/ProxyTunnelAppLauncher ./ProxyTunnelAppLauncher
 
       - name: Créer le zip de release (Windows)
         if: matrix.label == 'windows'
@@ -126,7 +124,7 @@ jobs:
         run: |
           version="${{ github.ref_name }}"
           [[ "$version" =~ ^v[0-9] ]] || version="dev"
-          zip "ProxyTunnelAppLauncher_${version}_${{ matrix.label }}.zip" ProxyTunnelAppLauncher
+          zip -j "ProxyTunnelAppLauncher_${version}_${{ matrix.label }}.zip" dist/ProxyTunnelAppLauncher
 
       - name: Ajouter l'exécutable à la Release
         uses: softprops/action-gh-release@v3
