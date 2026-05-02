@@ -3,10 +3,13 @@ from __future__ import annotations
 import os
 import random
 import shlex
+import shutil
 import socket
 import subprocess
 import sys
+import tempfile
 import threading
+import time
 from dataclasses import dataclass, field
 from typing import Callable, Dict, Optional
 
@@ -14,6 +17,45 @@ from PyQt6.QtCore import QObject, pyqtSignal
 
 from .forwarder import SimpleForwarder
 from .models import CommandEntry, PortRangeExhaustedError, ProxyProfile, resolve_text
+
+
+class SentinelProcess:
+    """Émule l'interface subprocess.Popen via un fichier sentinelle.
+    Utilisé sur macOS/Linux pour les commandes lancées dans un émulateur de terminal,
+    dont le processus parent retourne immédiatement sans attendre la fin de la session."""
+
+    def __init__(self, sentinel_path: str):
+        self._sentinel = sentinel_path
+        self.returncode: Optional[int] = None
+        self.stdout = None
+        self.stderr = None
+
+    def poll(self) -> Optional[int]:
+        if self.returncode is not None:
+            return self.returncode
+        if not os.path.exists(self._sentinel):
+            self.returncode = 0
+            return 0
+        return None
+
+    def wait(self, timeout=None) -> int:
+        deadline = time.monotonic() + timeout if timeout is not None else None
+        while True:
+            if self.poll() is not None:
+                return self.returncode
+            if deadline and time.monotonic() > deadline:
+                raise subprocess.TimeoutExpired(cmd='', timeout=timeout)
+            time.sleep(0.5)
+
+    def terminate(self):
+        try:
+            os.unlink(self._sentinel)
+        except FileNotFoundError:
+            pass
+        self.returncode = -1
+
+    def kill(self):
+        self.terminate()
 
 
 @dataclass
@@ -80,8 +122,12 @@ class TunnelManager(QObject):
         try:
             args = shlex.split(resolved_cmd)
             if cmd.console:
-                flags = subprocess.CREATE_NEW_CONSOLE if sys.platform == "win32" else 0
-                proc = subprocess.Popen(args, creationflags=flags)
+                if sys.platform == "win32":
+                    proc = subprocess.Popen(args, creationflags=subprocess.CREATE_NEW_CONSOLE)
+                elif sys.platform == "darwin":
+                    proc = self._launch_console_macos(resolved_cmd)
+                else:
+                    proc = self._launch_console_linux(resolved_cmd)
             else:
                 proc = subprocess.Popen(
                     args,
@@ -155,6 +201,51 @@ class TunnelManager(QObject):
         raise PortRangeExhaustedError(
             f"Plage de ports épuisée ({rmin}–{rmax}). "
             "Libérez des ressources ou élargissez la plage dans les paramètres."
+        )
+
+    def _make_sentinel_script(self, resolved_cmd: str):
+        """Crée un script shell temporaire avec fichier sentinelle pour macOS/Linux."""
+        fd, sentinel = tempfile.mkstemp(prefix='proxytunnel_', suffix='.sentinel')
+        os.close(fd)
+        fd, script_path = tempfile.mkstemp(prefix='proxytunnel_', suffix='.sh')
+        os.close(fd)
+        with open(script_path, 'w') as f:
+            f.write(
+                f'#!/bin/bash\n'
+                f'cleanup() {{ rm -f "{sentinel}" "{script_path}"; }}\n'
+                f'trap cleanup EXIT\n'
+                f'{resolved_cmd}\n'
+            )
+        os.chmod(script_path, 0o700)
+        return sentinel, script_path
+
+    def _launch_console_macos(self, resolved_cmd: str) -> SentinelProcess:
+        sentinel, script_path = self._make_sentinel_script(resolved_cmd)
+        applescript = (
+            'tell application "Terminal"\n'
+            f'  do script "bash {script_path}"\n'
+            '  activate\n'
+            'end tell'
+        )
+        subprocess.Popen(['osascript', '-e', applescript])
+        return SentinelProcess(sentinel)
+
+    def _launch_console_linux(self, resolved_cmd: str) -> SentinelProcess:
+        sentinel, script_path = self._make_sentinel_script(resolved_cmd)
+        terminals = [
+            ['xterm', '-e', 'bash', script_path],
+            ['x-terminal-emulator', '-e', 'bash', script_path],
+            ['konsole', '-e', 'bash', script_path],
+            ['gnome-terminal', '--', 'bash', script_path],
+            ['xfce4-terminal', '-e', f'bash {script_path}'],
+        ]
+        for term_args in terminals:
+            if shutil.which(term_args[0]):
+                subprocess.Popen(term_args)
+                return SentinelProcess(sentinel)
+        raise RuntimeError(
+            "Aucun émulateur de terminal trouvé. "
+            "Installez xterm, gnome-terminal, konsole ou xfce4-terminal."
         )
 
     def _teardown(self, command_name: str):
