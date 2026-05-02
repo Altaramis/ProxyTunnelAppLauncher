@@ -31,3 +31,6 @@ Nuitka.md
 .vscode/
 *.suo
 *.user
+
+# Local release notes
+releases/
