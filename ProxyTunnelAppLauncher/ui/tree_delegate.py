@@ -1,3 +1,5 @@
+# Copyright (C) 2026 Altaramis
+# SPDX-License-Identifier: GPL-3.0-or-later
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor, QPen
 from PyQt6.QtWidgets import QStyledItemDelegate

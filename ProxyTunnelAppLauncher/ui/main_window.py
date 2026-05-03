@@ -1,3 +1,5 @@
+# Copyright (C) 2026 Altaramis
+# SPDX-License-Identifier: GPL-3.0-or-later
 from __future__ import annotations
 
 import copy
@@ -113,7 +115,6 @@ class MainWindow(QMainWindow):
         self.tunnel_manager.session_ended.connect(self._on_session_ended)
 
         self._file_logger = logging.getLogger("ProxyTunnelAppLauncher")
-        self._file_logger.setLevel(logging.DEBUG)
         self._reconfigure_file_logger()
 
         self._build_ui()
@@ -139,7 +140,10 @@ class MainWindow(QMainWindow):
 
         self.tree = CommandTree()
         self.tree.setColumnCount(5)
-        self.tree.setHeaderLabels(["Nom", "Statut", "Cible", "Proxy", "Actions"])
+        self.tree.setHeaderLabels([
+            self.tr("Nom"), self.tr("Statut"), self.tr("Cible"),
+            self.tr("Proxy"), self.tr("Actions"),
+        ])
         hdr = self.tree.header()
         hdr.setSectionResizeMode(COL_NAME,    QHeaderView.ResizeMode.Interactive)
         hdr.setSectionResizeMode(COL_STATUS,  QHeaderView.ResizeMode.Fixed)
@@ -165,7 +169,7 @@ class MainWindow(QMainWindow):
         bb.setContentsMargins(0, 2, 0, 2)
         bb.setSpacing(6)
 
-        for label, slot, style in [
+        for key, slot, style in [
             ("Ajouter",      self._add_command,       "background:#27ae60;color:white;border-radius:3px;"),
             ("Tout arrêter", self._stop_all,           "background:#c0392b;color:white;border-radius:3px;"),
             ("Exporter",     self._export_config,      ""),
@@ -175,12 +179,12 @@ class MainWindow(QMainWindow):
             ("Paramètres",   self._open_settings,      ""),
             ("Journal",      self._open_log_window,    ""),
         ]:
-            btn = QPushButton(label)
+            btn = QPushButton(self.tr(key))
             if style:
                 btn.setStyleSheet(style)
             btn.clicked.connect(slot)
             bb.addWidget(btn)
-            if label in ("Ajouter", "Tout arrêter"):
+            if key in ("Ajouter", "Tout arrêter"):
                 sep = QLabel(" | ")
                 sep.setStyleSheet("color:gray;")
                 bb.addWidget(sep)
@@ -188,11 +192,11 @@ class MainWindow(QMainWindow):
         bb.addStretch()
 
         theme_btn = QToolButton()
-        theme_btn.setText("Thème ▾")
+        theme_btn.setText(self.tr("Thème ▾"))
         theme_btn.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
         theme_menu = QMenu(theme_btn)
         for t in ("Système", "Clair", "Sombre"):
-            action = theme_menu.addAction(t)
+            action = theme_menu.addAction(self.tr(t))
             action.triggered.connect(lambda _, th=t: self._apply_theme(th))
         theme_btn.setMenu(theme_menu)
         bb.addWidget(theme_btn)
@@ -257,7 +261,8 @@ class MainWindow(QMainWindow):
         for col in range(self.tree.columnCount()):
             item.setBackground(col, QBrush(bg))
             if resolved != cmd.command:
-                item.setToolTip(col, f"Template : {cmd.command}\nRésolu   : {resolved}")
+                item.setToolTip(col, self.tr("Template : {}\nRésolu   : {}").format(
+                    cmd.command, resolved))
         return item
 
     def _resolve_cmd_tooltip(self, cmd: CommandEntry) -> str:
@@ -275,10 +280,10 @@ class MainWindow(QMainWindow):
         running = self.tunnel_manager.is_running(cmd.name)
         if running:
             port = self.tunnel_manager.get_local_port(cmd.name)
-            lbl = QLabel(f"  ● Running  127.0.0.1:{port}")
+            lbl = QLabel(self.tr("  ● En cours  127.0.0.1:{}").format(port))
             lbl.setStyleSheet("color:#27ae60;font-weight:bold;background:transparent;")
         else:
-            lbl = QLabel("  ○ Stopped")
+            lbl = QLabel(self.tr("  ○ Arrêté"))
             lbl.setStyleSheet("color:#7f8c8d;background:transparent;")
         lay.addWidget(lbl)
         return w
@@ -287,7 +292,7 @@ class MainWindow(QMainWindow):
         w, lay = _action_widget()
         running = self.tunnel_manager.is_running(cmd.name)
 
-        btn_launch = QPushButton("Lancer")
+        btn_launch = QPushButton(self.tr("Lancer"))
         btn_launch.setObjectName("btn_launch")
         btn_launch.setEnabled(not running)
         btn_launch.setStyleSheet(
@@ -296,7 +301,7 @@ class MainWindow(QMainWindow):
         )
         btn_launch.clicked.connect(lambda _, c=cmd: self._launch_command(c))
 
-        btn_kill = QPushButton("Tuer")
+        btn_kill = QPushButton(self.tr("Tuer"))
         btn_kill.setObjectName("btn_kill")
         btn_kill.setEnabled(running)
         btn_kill.setStyleSheet(
@@ -305,7 +310,7 @@ class MainWindow(QMainWindow):
         )
         btn_kill.clicked.connect(lambda _, n=cmd.name: self.tunnel_manager.kill(n))
 
-        btn_edit = QPushButton("Modifier")
+        btn_edit = QPushButton(self.tr("Modifier"))
         btn_edit.setStyleSheet("background:#5d6d7e;color:white;border-radius:3px;")
         btn_edit.clicked.connect(lambda _, c=cmd: self._edit_command(c))
 
@@ -319,9 +324,9 @@ class MainWindow(QMainWindow):
         n_cmds    = len(self.app_config.commands)
         n_running = sum(1 for c in self.app_config.commands
                         if self.tunnel_manager.is_running(c.name))
-        self._sb_cmds.setText(f"  Commandes : {n_cmds}  ")
-        self._sb_running.setText(f"  Actives : {n_running} / {n_cmds}  ")
-        lw_status = "Journal ouvert" if self._log_window.isVisible() else ""
+        self._sb_cmds.setText(self.tr("  Commandes : {}  ").format(n_cmds))
+        self._sb_running.setText(self.tr("  Actives : {} / {}  ").format(n_running, n_cmds))
+        lw_status = self.tr("Journal ouvert") if self._log_window.isVisible() else ""
         self._sb_log.setText(f"  {lw_status}" if lw_status else "")
 
     def _refresh_status(self):
@@ -342,10 +347,10 @@ class MainWindow(QMainWindow):
                 if lbl:
                     if running:
                         port = self.tunnel_manager.get_local_port(name)
-                        lbl.setText(f"  ● Running  127.0.0.1:{port}")
+                        lbl.setText(self.tr("  ● En cours  127.0.0.1:{}").format(port))
                         lbl.setStyleSheet("color:#27ae60;font-weight:bold;background:transparent;")
                     else:
-                        lbl.setText("  ○ Stopped")
+                        lbl.setText(self.tr("  ○ Arrêté"))
                         lbl.setStyleSheet("color:#7f8c8d;background:transparent;")
             # Update action buttons
             aw = self.tree.itemWidget(item, COL_ACTIONS)
@@ -382,15 +387,15 @@ class MainWindow(QMainWindow):
         running = self.tunnel_manager.is_running(name)
         menu = QMenu(self)
 
-        act_launch = menu.addAction("Lancer")
+        act_launch = menu.addAction(self.tr("Lancer"))
         act_launch.setEnabled(not running)
-        act_kill = menu.addAction("Tuer")
+        act_kill = menu.addAction(self.tr("Tuer"))
         act_kill.setEnabled(running)
         menu.addSeparator()
-        act_edit = menu.addAction("Modifier…")
-        act_dup  = menu.addAction("Dupliquer")
+        act_edit = menu.addAction(self.tr("Modifier…"))
+        act_dup  = menu.addAction(self.tr("Dupliquer"))
         menu.addSeparator()
-        act_del  = menu.addAction("Supprimer")
+        act_del  = menu.addAction(self.tr("Supprimer"))
 
         chosen = menu.exec(self.tree.viewport().mapToGlobal(pos))
         if chosen == act_launch:
@@ -410,19 +415,20 @@ class MainWindow(QMainWindow):
         proxy = next((p for p in self.app_config.proxies if p.name == cmd.proxy), None)
         if not proxy:
             QMessageBox.warning(
-                self, "Proxy manquant",
-                f"Le profil proxy « {cmd.proxy or '(aucun)'} » est introuvable.\n"
-                "Veuillez configurer un proxy valide pour cette commande."
+                self, self.tr("Proxy manquant"),
+                self.tr("Le profil proxy « {} » est introuvable.\n"
+                        "Veuillez configurer un proxy valide pour cette commande."
+                        ).format(cmd.proxy or self.tr("(aucun)"))
             )
             return
         try:
             self.tunnel_manager.launch(cmd, proxy)
         except PortRangeExhaustedError as e:
-            QMessageBox.critical(self, "Plage de ports épuisée", str(e))
+            QMessageBox.critical(self, self.tr("Plage de ports épuisée"), str(e))
         except OSError as e:
-            QMessageBox.critical(self, "Erreur tunnel", str(e))
+            QMessageBox.critical(self, self.tr("Erreur tunnel"), str(e))
         except RuntimeError as e:
-            QMessageBox.critical(self, "Erreur", str(e))
+            QMessageBox.critical(self, self.tr("Erreur"), str(e))
 
     def _add_command(self):
         existing_names = [c.name for c in self.app_config.commands]
@@ -459,10 +465,10 @@ class MainWindow(QMainWindow):
         new_cmd = copy.deepcopy(cmd)
         base = cmd.name
         existing = {c.name for c in self.app_config.commands}
-        new_name = f"{base} (copie)"
+        new_name = self.tr("{} (copie)").format(base)
         i = 2
         while new_name in existing:
-            new_name = f"{base} (copie {i})"
+            new_name = self.tr("{} (copie {})").format(base, i)
             i += 1
         new_cmd.name = new_name
         new_cmd.order = len(self.app_config.commands)
@@ -473,7 +479,8 @@ class MainWindow(QMainWindow):
         if self.tunnel_manager.is_running(cmd.name):
             self.tunnel_manager.kill(cmd.name)
         if QMessageBox.question(
-            self, "Confirmer", f"Supprimer « {cmd.name} » ?",
+            self, self.tr("Confirmer"),
+            self.tr("Supprimer « {} » ?").format(cmd.name),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         ) == QMessageBox.StandardButton.Yes:
             self.app_config.commands = [c for c in self.app_config.commands if c.name != cmd.name]
@@ -529,6 +536,8 @@ class MainWindow(QMainWindow):
         for h in list(self._file_logger.handlers):
             h.close()
             self._file_logger.removeHandler(h)
+        level = getattr(logging, self.settings.log_file_level, logging.INFO)
+        self._file_logger.setLevel(level)
         if not self.settings.log_file_enabled:
             return
         try:
@@ -547,7 +556,8 @@ class MainWindow(QMainWindow):
 
     def _export_config(self):
         path, _ = QFileDialog.getSaveFileName(
-            self, "Exporter les configurations", "configs_export.json", "JSON (*.json)"
+            self, self.tr("Exporter les configurations"), "configs_export.json",
+            self.tr("JSON (*.json)")
         )
         if not path:
             return
@@ -555,20 +565,23 @@ class MainWindow(QMainWindow):
             save_config(self.app_config, path)
             self._log(f"Exporté vers {path}")
         except Exception as e:
-            QMessageBox.critical(self, "Erreur", str(e))
+            QMessageBox.critical(self, self.tr("Erreur"), str(e))
 
     def _import_config(self):
-        path, _ = QFileDialog.getOpenFileName(self, "Importer des configurations", "", "JSON (*.json)")
+        path, _ = QFileDialog.getOpenFileName(
+            self, self.tr("Importer des configurations"), "", self.tr("JSON (*.json)")
+        )
         if not path:
             return
         try:
             import_cfg = load_config(path)
         except Exception as e:
-            QMessageBox.critical(self, "Erreur", str(e))
+            QMessageBox.critical(self, self.tr("Erreur"), str(e))
             return
 
         if not import_cfg.proxies and not import_cfg.commands:
-            QMessageBox.information(self, "Importer", "Aucune donnée trouvée dans le fichier.")
+            QMessageBox.information(self, self.tr("Importer"),
+                                    self.tr("Aucune donnée trouvée dans le fichier."))
             return
 
         existing_proxies = {p.name: p for p in self.app_config.proxies}

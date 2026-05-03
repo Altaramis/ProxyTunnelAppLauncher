@@ -1,9 +1,12 @@
+# Copyright (C) 2026 Altaramis
+# SPDX-License-Identifier: GPL-3.0-or-later
 import socket
 import sys
 import threading
 from typing import Callable, Optional
 
 import socks
+from PyQt6.QtCore import QCoreApplication
 
 
 class SimpleForwarder:
@@ -46,7 +49,8 @@ class SimpleForwarder:
                 probe.connect((self.socks_host, self.socks_port))
         except OSError:
             raise OSError(
-                f"Proxy SOCKS5 inaccessible : {self.socks_host}:{self.socks_port}"
+                QCoreApplication.translate("App", "Proxy SOCKS5 inaccessible : {}:{}").format(
+                    self.socks_host, self.socks_port)
             )
 
         self._stop_event.clear()
@@ -64,7 +68,8 @@ class SimpleForwarder:
                 pass
             self._server_sock = None
             raise OSError(
-                f"Port {self.listen_port} indisponible sur {self.listen_host} : {e.strerror}"
+                QCoreApplication.translate("App", "Port {} indisponible sur {} : {}").format(
+                    self.listen_port, self.listen_host, e.strerror)
             ) from e
         self._server_sock.listen(8)
         self._accept_thread = threading.Thread(target=self._accept_loop, daemon=True)

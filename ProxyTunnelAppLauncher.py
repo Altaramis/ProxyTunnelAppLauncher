@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Copyright (C) 2026 Altaramis
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Lanceur direct — alternative à `python -m ProxyTunnelAppLauncher`."""
 import sys
 import os

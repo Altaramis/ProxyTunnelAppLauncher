@@ -1,3 +1,5 @@
+# Copyright (C) 2026 Altaramis
+# SPDX-License-Identifier: GPL-3.0-or-later
 from __future__ import annotations
 
 import os
@@ -93,7 +95,7 @@ class TunnelManager(QObject):
     def launch(self, cmd: CommandEntry, proxy: ProxyProfile) -> TunnelSession:
         with self._lock:
             if cmd.name in self._sessions:
-                raise RuntimeError(f"Commande '{cmd.name}' déjà en cours d'exécution")
+                raise RuntimeError(self.tr("Commande '{}' déjà en cours d'exécution").format(cmd.name))
             port = self._allocate_port()
 
         f = SimpleForwarder(
@@ -139,7 +141,7 @@ class TunnelManager(QObject):
                 )
         except Exception as e:
             self._teardown(cmd.name)
-            raise RuntimeError(f"Impossible de lancer la commande : {e}") from e
+            raise RuntimeError(self.tr("Impossible de lancer la commande : {}").format(e)) from e
 
         session.process = proc
         exe = os.path.splitext(os.path.basename(args[0]))[0] if args else cmd.name
@@ -199,8 +201,9 @@ class TunnelManager(QObject):
             except OSError:
                 continue
         raise PortRangeExhaustedError(
-            f"Plage de ports épuisée ({rmin}–{rmax}). "
-            "Libérez des ressources ou élargissez la plage dans les paramètres."
+            self.tr("Plage de ports épuisée ({}–{}). "
+                    "Libérez des ressources ou élargissez la plage dans les paramètres."
+                    ).format(rmin, rmax)
         )
 
     def _make_sentinel_script(self, resolved_cmd: str):
@@ -244,8 +247,8 @@ class TunnelManager(QObject):
                 subprocess.Popen(term_args)
                 return SentinelProcess(sentinel)
         raise RuntimeError(
-            "Aucun émulateur de terminal trouvé. "
-            "Installez xterm, gnome-terminal, konsole ou xfce4-terminal."
+            self.tr("Aucun émulateur de terminal trouvé. "
+                    "Installez xterm, gnome-terminal, konsole ou xfce4-terminal.")
         )
 
     def _teardown(self, command_name: str):

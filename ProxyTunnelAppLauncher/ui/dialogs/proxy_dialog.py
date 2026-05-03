@@ -1,3 +1,5 @@
+# Copyright (C) 2026 Altaramis
+# SPDX-License-Identifier: GPL-3.0-or-later
 import socket
 import threading
 from typing import List, Optional
@@ -22,13 +24,13 @@ class ProxyProfileDialog(QDialog):
         self._existing_names = existing_names or []
         self._initial_name = initial.name if initial else None
 
-        self.setWindowTitle("Nouveau proxy" if not initial else f"Modifier — {initial.name}")
+        self.setWindowTitle(self.tr("Nouveau proxy") if not initial else self.tr("Modifier — {}").format(initial.name))
         self.setMinimumWidth(420)
         self.setModal(True)
 
         layout = QVBoxLayout(self)
 
-        grp = QGroupBox("Proxy SOCKS5")
+        grp = QGroupBox(self.tr("Proxy SOCKS5"))
         form = QFormLayout(grp)
 
         self.name_edit = QLineEdit(initial.name if initial else "")
@@ -40,18 +42,18 @@ class ProxyProfileDialog(QDialog):
         self.pass_edit = QLineEdit(initial.password or "" if initial else "")
         self.pass_edit.setEchoMode(QLineEdit.EchoMode.Password)
 
-        form.addRow("Nom",           self.name_edit)
-        form.addRow("Host",          self.host_edit)
-        form.addRow("Port",          self.port_spin)
-        form.addRow("Utilisateur",   self.user_edit)
-        form.addRow("Mot de passe",  self.pass_edit)
+        form.addRow(self.tr("Nom"),           self.name_edit)
+        form.addRow(self.tr("Host"),          self.host_edit)
+        form.addRow(self.tr("Port"),          self.port_spin)
+        form.addRow(self.tr("Utilisateur"),   self.user_edit)
+        form.addRow(self.tr("Mot de passe"),  self.pass_edit)
 
         # Bouton test
         test_row = QWidget()
         test_lay = QHBoxLayout(test_row)
         test_lay.setContentsMargins(0, 0, 0, 0)
         self._test_label = QLabel("")
-        btn_test = QPushButton("Tester la connexion")
+        btn_test = QPushButton(self.tr("Tester la connexion"))
         btn_test.clicked.connect(self._test_connection)
         test_lay.addWidget(btn_test)
         test_lay.addWidget(self._test_label)
@@ -69,7 +71,7 @@ class ProxyProfileDialog(QDialog):
     def _test_connection(self):
         host = self.host_edit.text().strip()
         port = self.port_spin.value()
-        self._test_label.setText("Test en cours…")
+        self._test_label.setText(self.tr("Test en cours…"))
         self._test_label.setStyleSheet("color:#e67e22;")
 
         def probe():
@@ -77,9 +79,9 @@ class ProxyProfileDialog(QDialog):
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                     s.settimeout(3)
                     s.connect((host, port))
-                result, style = "Accessible ✓", "color:#27ae60;font-weight:bold;"
+                result, style = self.tr("Accessible ✓"), "color:#27ae60;font-weight:bold;"
             except Exception as e:
-                result, style = f"Erreur : {e}", "color:#e74c3c;"
+                result, style = self.tr("Erreur : {}").format(e), "color:#e74c3c;"
             self._test_label.setText(result)
             self._test_label.setStyleSheet(style)
 
@@ -88,14 +90,15 @@ class ProxyProfileDialog(QDialog):
     def _on_accept(self):
         name = self.name_edit.text().strip()
         if not name:
-            QMessageBox.warning(self, "Erreur", "Le nom ne peut pas être vide.")
+            QMessageBox.warning(self, self.tr("Erreur"), self.tr("Le nom ne peut pas être vide."))
             return
         if name != self._initial_name and name in self._existing_names:
-            QMessageBox.warning(self, "Erreur", f"Le nom « {name} » est déjà utilisé.")
+            QMessageBox.warning(self, self.tr("Erreur"),
+                                self.tr("Le nom « {} » est déjà utilisé.").format(name))
             return
         host = self.host_edit.text().strip()
         if not host:
-            QMessageBox.warning(self, "Erreur", "L'hôte ne peut pas être vide.")
+            QMessageBox.warning(self, self.tr("Erreur"), self.tr("L'hôte ne peut pas être vide."))
             return
         self.result_proxy = ProxyProfile(
             name=name,
@@ -116,14 +119,16 @@ class ProxyManagerDialog(QDialog):
         self._proxies: List[ProxyProfile] = list(proxies)
         self._commands_by_proxy = commands_by_proxy or {}
         self._renames: dict = {}
-        self.setWindowTitle("Profils proxy SOCKS5")
+        self.setWindowTitle(self.tr("Profils proxy SOCKS5"))
         self.setMinimumSize(560, 360)
         self.setModal(True)
 
         layout = QVBoxLayout(self)
 
         self.table = QTableWidget(0, 4)
-        self.table.setHorizontalHeaderLabels(["Nom", "Host:Port", "Utilisateur", "Actions"])
+        self.table.setHorizontalHeaderLabels([
+            self.tr("Nom"), self.tr("Host:Port"), self.tr("Utilisateur"), self.tr("Actions")
+        ])
         self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Interactive)
         self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Interactive)
         self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Interactive)
@@ -137,7 +142,7 @@ class ProxyManagerDialog(QDialog):
         layout.addWidget(self.table)
 
         btn_row = QHBoxLayout()
-        add_btn = QPushButton("Ajouter un proxy")
+        add_btn = QPushButton(self.tr("Ajouter un proxy"))
         add_btn.setStyleSheet("background:#27ae60;color:white;border-radius:3px;")
         add_btn.clicked.connect(self._add_proxy)
         btn_row.addWidget(add_btn)
@@ -167,11 +172,11 @@ class ProxyManagerDialog(QDialog):
         lay.setContentsMargins(4, 2, 4, 2)
         lay.setSpacing(4)
 
-        btn_edit = QPushButton("Modifier")
+        btn_edit = QPushButton(self.tr("Modifier"))
         btn_edit.setStyleSheet("background:#5d6d7e;color:white;border-radius:3px;")
         btn_edit.clicked.connect(lambda _, p=proxy: self._edit_proxy(p))
 
-        btn_del = QPushButton("Supprimer")
+        btn_del = QPushButton(self.tr("Supprimer"))
         btn_del.setStyleSheet("background:#c0392b;color:white;border-radius:3px;")
         btn_del.clicked.connect(lambda _, p=proxy: self._delete_proxy(p))
 
@@ -204,9 +209,9 @@ class ProxyManagerDialog(QDialog):
     def _delete_proxy(self, proxy: ProxyProfile):
         refs = self._commands_by_proxy.get(proxy.name, [])
         if refs:
-            msg = (f"Le proxy « {proxy.name} » est utilisé par "
-                   f"{len(refs)} commande(s).\nSupprimer quand même ?")
-            if QMessageBox.question(self, "Confirmer", msg,
+            msg = self.tr("Le proxy « {} » est utilisé par {} commande(s).\nSupprimer quand même ?").format(
+                proxy.name, len(refs))
+            if QMessageBox.question(self, self.tr("Confirmer"), msg,
                                     QMessageBox.StandardButton.Yes |
                                     QMessageBox.StandardButton.No
                                     ) != QMessageBox.StandardButton.Yes:

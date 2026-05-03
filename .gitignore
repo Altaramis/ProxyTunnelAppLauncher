@@ -26,6 +26,9 @@ env/
 # Build Nuitka.md — instructions de build privées
 Nuitka.md
 
+# Traductions compilées (artefacts générés depuis les .ts)
+translations/*.qm
+
 # IDE
 .idea/
 .vscode/

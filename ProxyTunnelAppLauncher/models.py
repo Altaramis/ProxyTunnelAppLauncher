@@ -1,3 +1,5 @@
+# Copyright (C) 2026 Altaramis
+# SPDX-License-Identifier: GPL-3.0-or-later
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -113,6 +115,8 @@ class AppSettings:
     log_file_path: str = "ProxyTunnelAppLauncher.log"
     log_file_max_mb: int = 5
     log_file_backup_count: int = 3
+    log_file_level: str = "INFO"
+    language: str = "fr_FR"
     variables: Dict[str, str] = field(default_factory=lambda: dict(DEFAULT_VARIABLES))
 
     def to_dict(self) -> dict:
@@ -122,6 +126,8 @@ class AppSettings:
             "log_file_path": self.log_file_path,
             "log_file_max_mb": self.log_file_max_mb,
             "log_file_backup_count": self.log_file_backup_count,
+            "log_file_level": self.log_file_level,
+            "language": self.language,
             "variables": self.variables,
         }
 
@@ -133,5 +139,7 @@ class AppSettings:
             log_file_path=d.get("log_file_path", "ProxyTunnelAppLauncher.log"),
             log_file_max_mb=int(d.get("log_file_max_mb", 5)),
             log_file_backup_count=int(d.get("log_file_backup_count", 3)),
+            log_file_level=d.get("log_file_level", "INFO"),
+            language=d.get("language", "fr_FR"),
             variables=d.get("variables", dict(DEFAULT_VARIABLES)),
         )

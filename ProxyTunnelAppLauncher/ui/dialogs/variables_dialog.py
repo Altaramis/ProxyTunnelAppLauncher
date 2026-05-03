@@ -1,3 +1,5 @@
+# Copyright (C) 2026 Altaramis
+# SPDX-License-Identifier: GPL-3.0-or-later
 from PyQt6.QtWidgets import (
     QDialog, QDialogButtonBox, QHBoxLayout, QHeaderView, QLabel,
     QPushButton, QTableWidget, QTableWidgetItem, QVBoxLayout,
@@ -9,21 +11,21 @@ class VariablesDialog(QDialog):
 
     def __init__(self, parent, variables: dict):
         super().__init__(parent)
-        self.setWindowTitle("Variables globales")
+        self.setWindowTitle(self.tr("Variables globales"))
         self.setMinimumSize(540, 400)
         self.setModal(True)
 
         layout = QVBoxLayout(self)
 
-        info = QLabel(
+        info = QLabel(self.tr(
             "Ces variables peuvent être utilisées dans n'importe quel champ de saisie "
             "sous la forme <b>{nom}</b>. Les variables peuvent aussi en référencer d'autres."
-        )
+        ))
         info.setWordWrap(True)
         layout.addWidget(info)
 
         self.table = QTableWidget(0, 2)
-        self.table.setHorizontalHeaderLabels(["Nom", "Valeur"])
+        self.table.setHorizontalHeaderLabels([self.tr("Nom"), self.tr("Valeur")])
         self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Interactive)
         self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         self.table.setColumnWidth(0, 150)
@@ -35,10 +37,10 @@ class VariablesDialog(QDialog):
             self._add_row(name, value)
 
         btn_row = QHBoxLayout()
-        add_btn = QPushButton("Ajouter une variable")
+        add_btn = QPushButton(self.tr("Ajouter une variable"))
         add_btn.setStyleSheet("background:#27ae60;color:white;border-radius:3px;")
         add_btn.clicked.connect(self._add_empty_row)
-        del_btn = QPushButton("Supprimer la sélection")
+        del_btn = QPushButton(self.tr("Supprimer la sélection"))
         del_btn.setStyleSheet("background:#c0392b;color:white;border-radius:3px;")
         del_btn.clicked.connect(self._delete_selected)
         btn_row.addWidget(add_btn)

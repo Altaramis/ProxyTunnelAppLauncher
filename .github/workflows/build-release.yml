@@ -80,6 +80,9 @@ jobs:
             > ProxyTunnelAppLauncher/_version.py
           echo "VERSION=$version" >> "$GITHUB_ENV"
 
+      - name: Compiler les traductions (.ts → .qm)
+        run: python build_translations.py
+
       - name: Compiler avec Nuitka (Windows)
         if: matrix.label == 'windows'
         run: |
@@ -92,6 +95,7 @@ jobs:
             --windows-console-mode=disable `
             --windows-icon-from-ico=logo.ico `
             --include-data-files=logo.ico=logo.ico `
+            --include-data-dir=translations=translations `
             --product-name="ProxyTunnel AppLauncher" `
             --file-version="$env:FILE_VERSION" `
             --product-version="$env:FILE_VERSION" `
@@ -111,6 +115,7 @@ jobs:
             --enable-plugin=pyqt6 \
             --linux-onefile-icon=logo.png \
             --include-data-files=logo.ico=logo.ico \
+            --include-data-dir=translations=translations \
             --output-dir=dist \
             --output-filename=ProxyTunnelAppLauncher \
             --assume-yes-for-downloads \
@@ -124,6 +129,7 @@ jobs:
             --windowed \
             --icon=logo.ico \
             --add-data "logo.ico:." \
+            --add-data "translations:translations" \
             --name ProxyTunnelAppLauncher \
             ./ProxyTunnelAppLauncher.py
 

@@ -1,3 +1,5 @@
+# Copyright (C) 2026 Altaramis
+# SPDX-License-Identifier: GPL-3.0-or-later
 from typing import Dict, List, Optional, Tuple
 
 from PyQt6.QtCore import Qt
@@ -34,7 +36,7 @@ class ImportDialog(QDialog):
         super().__init__(parent)
         self._import_proxies  = import_proxies
         self._import_commands = import_commands
-        self.setWindowTitle("Importer des configurations")
+        self.setWindowTitle(self.tr("Importer des configurations"))
         self.setMinimumWidth(660)
         self.setMinimumHeight(420)
         self.setModal(True)
@@ -42,7 +44,7 @@ class ImportDialog(QDialog):
         layout = QVBoxLayout(self)
 
         # ── Section proxies ────────────────────────────────────────────────
-        grp_proxy = QGroupBox("Profils proxy")
+        grp_proxy = QGroupBox(self.tr("Profils proxy"))
         pv = QVBoxLayout(grp_proxy)
 
         n_pnew = sum(1 for p in import_proxies if p.name not in existing_proxies)
@@ -50,12 +52,12 @@ class ImportDialog(QDialog):
                      if p.name in existing_proxies and p.to_dict() != existing_proxies[p.name].to_dict())
         n_psame = len(import_proxies) - n_pnew - n_pcnf
         pv.addWidget(QLabel(
-            f"{len(import_proxies)} proxy(s) — {n_pnew} nouveau(x), "
-            f"{n_pcnf} conflit(s), {n_psame} identique(s)."
+            self.tr("{} proxy(s) — {} nouveau(x), {} conflit(s), {} identique(s).").format(
+                len(import_proxies), n_pnew, n_pcnf, n_psame)
         ))
 
         self._proxy_tbl = QTableWidget(len(import_proxies), 3)
-        self._proxy_tbl.setHorizontalHeaderLabels(["", "Nom", "Action"])
+        self._proxy_tbl.setHorizontalHeaderLabels(["", self.tr("Nom"), self.tr("Action")])
         self._proxy_tbl.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
         self._proxy_tbl.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Interactive)
         self._proxy_tbl.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
@@ -74,7 +76,7 @@ class ImportDialog(QDialog):
                          self._proxy_chks, self._proxy_combos)
 
         # ── Section commandes ──────────────────────────────────────────────
-        grp_cmd = QGroupBox("Commandes")
+        grp_cmd = QGroupBox(self.tr("Commandes"))
         cv = QVBoxLayout(grp_cmd)
 
         n_cnew = sum(1 for c in import_commands if c.name not in existing_commands)
@@ -82,12 +84,12 @@ class ImportDialog(QDialog):
                      if c.name in existing_commands and c.to_dict() != existing_commands[c.name].to_dict())
         n_csame = len(import_commands) - n_cnew - n_ccnf
         cv.addWidget(QLabel(
-            f"{len(import_commands)} commande(s) — {n_cnew} nouvelle(s), "
-            f"{n_ccnf} conflit(s), {n_csame} identique(s)."
+            self.tr("{} commande(s) — {} nouvelle(s), {} conflit(s), {} identique(s).").format(
+                len(import_commands), n_cnew, n_ccnf, n_csame)
         ))
 
         self._cmd_tbl = QTableWidget(len(import_commands), 3)
-        self._cmd_tbl.setHorizontalHeaderLabels(["", "Nom", "Action"])
+        self._cmd_tbl.setHorizontalHeaderLabels(["", self.tr("Nom"), self.tr("Action")])
         self._cmd_tbl.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
         self._cmd_tbl.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Interactive)
         self._cmd_tbl.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
@@ -107,7 +109,7 @@ class ImportDialog(QDialog):
 
         btns = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok |
                                 QDialogButtonBox.StandardButton.Cancel)
-        btns.button(QDialogButtonBox.StandardButton.Ok).setText("Importer la sélection")
+        btns.button(QDialogButtonBox.StandardButton.Ok).setText(self.tr("Importer la sélection"))
         btns.accepted.connect(self.accept)
         btns.rejected.connect(self.reject)
         layout.addWidget(btns)
@@ -116,11 +118,11 @@ class ImportDialog(QDialog):
         for i, item in enumerate(items):
             key = item.name
             if key not in existing:
-                status, status_txt, color = self.NEW, "Nouveau", "#27ae60"
+                status, status_txt, color = self.NEW, self.tr("Nouveau"), "#27ae60"
             elif item.to_dict() == existing[key].to_dict():
-                status, status_txt, color = self.IDENTICAL, "Identique", "#7f8c8d"
+                status, status_txt, color = self.IDENTICAL, self.tr("Identique"), "#7f8c8d"
             else:
-                status, status_txt, color = self.CONFLICT, "Conflit", "#e67e22"
+                status, status_txt, color = self.CONFLICT, self.tr("Conflit"), "#e67e22"
 
             chk_w = QWidget()
             chk_lay = QHBoxLayout(chk_w)
@@ -137,12 +139,12 @@ class ImportDialog(QDialog):
 
             if status == self.CONFLICT:
                 combo = QComboBox()
-                combo.addItem("Écraser", "overwrite")
-                combo.addItem("Ignorer",  "skip")
+                combo.addItem(self.tr("Écraser"), "overwrite")
+                combo.addItem(self.tr("Ignorer"),  "skip")
                 tbl.setCellWidget(i, 2, combo)
                 combos.append(combo)
             else:
-                action_txt = "Sera ajouté" if status == self.NEW else "Déjà à jour — ignoré"
+                action_txt = self.tr("Sera ajouté") if status == self.NEW else self.tr("Déjà à jour — ignoré")
                 lbl = QLabel(f"  {action_txt}")
                 lbl.setStyleSheet(f"color:{color};background:transparent;")
                 tbl.setCellWidget(i, 2, lbl)

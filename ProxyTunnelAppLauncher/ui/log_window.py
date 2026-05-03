@@ -1,3 +1,5 @@
+# Copyright (C) 2026 Altaramis
+# SPDX-License-Identifier: GPL-3.0-or-later
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor, QFont, QPalette, QTextCharFormat, QTextCursor
 from PyQt6.QtWidgets import QApplication, QHBoxLayout, QPlainTextEdit, QPushButton, QVBoxLayout, QWidget
@@ -16,14 +18,14 @@ class LogWindow(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent, Qt.WindowType.Window)
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, False)
-        self.setWindowTitle("Journal — ProxyTunnel AppLauncher")
+        self.setWindowTitle(self.tr("Journal — ProxyTunnel AppLauncher"))
         self.resize(900, 520)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
 
         btn_row = QHBoxLayout()
-        btn_clear = QPushButton("Effacer")
+        btn_clear = QPushButton(self.tr("Effacer"))
         btn_clear.clicked.connect(self._clear)
         btn_row.addWidget(btn_clear)
         btn_row.addStretch()
@@ -33,7 +35,7 @@ class LogWindow(QWidget):
         self.log_text.setReadOnly(True)
         self.log_text.setFont(QFont("Consolas", 9))
         self.log_text.setMaximumBlockCount(20000)
-        self.log_text.setPlaceholderText("Aucun événement pour l'instant…")
+        self.log_text.setPlaceholderText(self.tr("Aucun événement pour l'instant…"))
         layout.addWidget(self.log_text)
 
     def append_entry(self, level: str, message: str):
