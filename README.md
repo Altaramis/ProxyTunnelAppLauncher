@@ -37,6 +37,21 @@ Commande : ssh user@{bind_ip} -p {bind_port}  [✓ Console interactive]
 
 ---
 
+## macOS — Premier lancement
+
+L'application n'est pas signée avec un certificat Apple payant.
+macOS affiche un avertissement au premier lancement.
+
+**Méthode recommandée :** clic droit sur `ProxyTunnelAppLauncher.app` → **Ouvrir** → confirmer dans la boîte de dialogue.
+
+**Méthode alternative (Terminal) :**
+```bash
+xattr -dr com.apple.quarantine /chemin/vers/ProxyTunnelAppLauncher.app
+```
+Puis double-cliquer normalement.
+
+---
+
 ## Installation
 
 ```bash
