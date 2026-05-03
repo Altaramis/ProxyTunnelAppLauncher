@@ -46,8 +46,20 @@ Si vous préférez ne pas exécuter un binaire pré-compilé, vous pouvez lancer
 ```bash
 git clone https://github.com/Altaramis/ProxyTunnelAppLauncher.git
 cd ProxyTunnelAppLauncher
-pip install -r requirements.txt
+
+# 1. Créer le venv et installer les dépendances (une seule fois)
+python -m venv venv
+# Windows :    venv\Scripts\pip install -r requirements.txt
+# Linux/macOS : venv/bin/pip install -r requirements.txt
+
+# 2a. Lancer avec activation du venv
+# Windows :    venv\Scripts\activate
+# Linux/macOS : source venv/bin/activate
 python ProxyTunnelAppLauncher.py
+
+# 2b. Lancer sans activation (appel direct)
+# Windows :    venv\Scripts\python ProxyTunnelAppLauncher.py
+# Linux/macOS : venv/bin/python ProxyTunnelAppLauncher.py
 ```
 
 Le code est sous licence GPL v3+ — vous pouvez l'auditer, le modifier et le redistribuer librement.
@@ -57,7 +69,19 @@ Le code est sous licence GPL v3+ — vous pouvez l'auditer, le modifier et le re
 ## Installation
 
 ```bash
-pip install -r requirements.txt
+# 1. Créer le venv et installer les dépendances (une seule fois)
+python -m venv venv
+# Windows :    venv\Scripts\pip install -r requirements.txt
+# Linux/macOS : venv/bin/pip install -r requirements.txt
+
+# 2a. Lancer avec activation du venv
+# Windows :    venv\Scripts\activate
+# Linux/macOS : source venv/bin/activate
+python ProxyTunnelAppLauncher.py
+
+# 2b. Lancer sans activation (appel direct)
+# Windows :    venv\Scripts\python ProxyTunnelAppLauncher.py
+# Linux/macOS : venv/bin/python ProxyTunnelAppLauncher.py
 ```
 
 **Dépendances :**
