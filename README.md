@@ -37,18 +37,20 @@ Commande : ssh user@{bind_ip} -p {bind_port}  [✓ Console interactive]
 
 ---
 
-## macOS — Premier lancement
+## Confiance limitée dans le build ?
 
-L'application n'est pas signée avec un certificat Apple payant.
-macOS affiche un avertissement au premier lancement.
+Les binaires Windows, Linux et macOS sont compilés automatiquement par GitHub Actions à partir de ce dépôt public — le workflow est visible dans [`.github/workflows/build-release.yml`](.github/workflows/build-release.yml).
 
-**Méthode recommandée :** clic droit sur `ProxyTunnelAppLauncher.app` → **Ouvrir** → confirmer dans la boîte de dialogue.
+Si vous préférez ne pas exécuter un binaire pré-compilé, vous pouvez lancer l'application directement depuis les sources Python :
 
-**Méthode alternative (Terminal) :**
 ```bash
-xattr -dr com.apple.quarantine /chemin/vers/ProxyTunnelAppLauncher.app
+git clone https://github.com/Altaramis/ProxyTunnelAppLauncher.git
+cd ProxyTunnelAppLauncher
+pip install -r requirements.txt
+python ProxyTunnelAppLauncher.py
 ```
-Puis double-cliquer normalement.
+
+Le code est sous licence GPL v3+ — vous pouvez l'auditer, le modifier et le redistribuer librement.
 
 ---
 
@@ -62,6 +64,27 @@ pip install -r requirements.txt
 - Python 3.10+
 - PyQt6 >= 6.6.0
 - PySocks >= 1.7.1
+
+---
+
+## macOS — Premier lancement
+
+L'application n'est pas signée avec un certificat Apple payant. macOS bloque son exécution au premier lancement.
+
+**Méthode 1 — Réglages Système (sans Terminal)**
+
+1. Tenter d'ouvrir `ProxyTunnelAppLauncher` (le lancement est bloqué)
+2. Ouvrir **Réglages Système → Confidentialité et sécurité**
+3. Faire défiler vers le bas → un message *"ProxyTunnelAppLauncher a été bloqué"* apparaît
+4. Cliquer **"Autoriser quand même"**
+5. Rouvrir l'application → confirmer avec **"Ouvrir quand même"**
+
+**Méthode 2 — Terminal**
+
+```bash
+xattr -dr com.apple.quarantine /chemin/vers/ProxyTunnelAppLauncher
+```
+Puis double-cliquer normalement.
 
 ---
 

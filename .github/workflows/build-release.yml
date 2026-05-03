@@ -120,37 +120,12 @@ jobs:
         if: matrix.label == 'macos'
         run: |
           pyinstaller \
+            --onefile \
             --windowed \
             --icon=logo.ico \
             --add-data "logo.ico:." \
             --name ProxyTunnelAppLauncher \
-            --osx-bundle-identifier=eu.altaramis.proxytunnelapp \
             ./ProxyTunnelAppLauncher.py
-
-      - name: Compléter Info.plist (macOS)
-        if: matrix.label == 'macos'
-        shell: python
-        run: |
-          import plistlib, os, pathlib
-          plist_path = pathlib.Path("dist/ProxyTunnelAppLauncher.app/Contents/Info.plist")
-          version = os.environ.get("VERSION", "dev")
-          with plist_path.open("rb") as f:
-              data = plistlib.load(f)
-          data["CFBundleShortVersionString"] = version
-          data["CFBundleVersion"] = version
-          data["NSHumanReadableCopyright"] = "Copyright (C) 2024-2026 Altaramis - GPL v3+"
-          with plist_path.open("wb") as f:
-              plistlib.dump(data, f)
-          print(f"Info.plist mis a jour : version={version}")
-
-      - name: Signer en ad-hoc (macOS)
-        if: matrix.label == 'macos'
-        run: |
-          codesign \
-            --force \
-            --deep \
-            --sign - \
-            dist/ProxyTunnelAppLauncher.app
 
       - name: Créer le zip de release (Windows)
         if: matrix.label == 'windows'
@@ -174,8 +149,7 @@ jobs:
         run: |
           version="${{ github.ref_name }}"
           [[ "$version" =~ ^v[0-9] ]] || version="dev"
-          cd dist
-          zip -r "../ProxyTunnelAppLauncher_${version}_macos.zip" ProxyTunnelAppLauncher.app
+          zip -j "ProxyTunnelAppLauncher_${version}_macos.zip" dist/ProxyTunnelAppLauncher
 
       - name: Ajouter l'exécutable à la Release
         uses: softprops/action-gh-release@v3
