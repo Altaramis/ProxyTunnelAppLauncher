@@ -92,11 +92,10 @@ jobs:
             --windows-console-mode=disable `
             --windows-icon-from-ico=logo.ico `
             --include-data-files=logo.ico=logo.ico `
-            --company-name="Altaramis" `
             --product-name="ProxyTunnel AppLauncher" `
             --file-version="$env:FILE_VERSION" `
             --product-version="$env:FILE_VERSION" `
-            --copyright="Copyright (C) 2024-2026 Altaramis — GPL v3+" `
+            --copyright="Copyright (C) 2024-2026 Altaramis - GPL v3+" `
             --file-description="ProxyTunnel AppLauncher" `
             --assume-yes-for-downloads `
             ./ProxyTunnelAppLauncher.py
@@ -139,7 +138,7 @@ jobs:
               data = plistlib.load(f)
           data["CFBundleShortVersionString"] = version
           data["CFBundleVersion"] = version
-          data["NSHumanReadableCopyright"] = "Copyright (C) 2024-2026 Altaramis — GPL v3+"
+          data["NSHumanReadableCopyright"] = "Copyright (C) 2024-2026 Altaramis - GPL v3+"
           with plist_path.open("wb") as f:
               plistlib.dump(data, f)
           print(f"Info.plist mis a jour : version={version}")
