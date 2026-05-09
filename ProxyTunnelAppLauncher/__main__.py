@@ -13,7 +13,7 @@ from .ui.main_window import MainWindow
 
 def main():
     if "--version" in sys.argv:
-        print(f"ProxyTunnel AppLauncher {__version__}")
+        print(f"ProxyTunnel AppLauncher v{__version__}")
         sys.exit(0)
 
     app = QApplication(sys.argv)
