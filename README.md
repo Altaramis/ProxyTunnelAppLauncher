@@ -53,7 +53,7 @@ Command  : ssh user@{bind_ip} -p {bind_port}  [✓ Interactive console]
 
 ### Screenshot
 
-<!-- Add a screenshot here once available: ![Screenshot](screenshot.png) -->
+![Screenshot](screenshot.png)
 
 ---
 
@@ -436,7 +436,7 @@ Commande : ssh user@{bind_ip} -p {bind_port}  [✓ Console interactive]
 
 ### Capture d'écran
 
-<!-- Ajoutez une capture d'écran ici : ![Capture d'écran](screenshot.png) -->
+![Capture d'écran](screenshot.png)
 
 ---
 
