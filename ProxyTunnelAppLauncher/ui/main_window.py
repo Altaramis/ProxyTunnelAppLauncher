@@ -292,9 +292,10 @@ class MainWindow(QMainWindow):
         w, lay = _action_widget()
         running = self.tunnel_manager.is_running(cmd.name)
 
-        btn_launch = QPushButton(self.tr("Lancer"))
+        launch_label = self.tr("Relancer") if (cmd.keep_alive and running) else self.tr("Lancer")
+        btn_launch = QPushButton(launch_label)
         btn_launch.setObjectName("btn_launch")
-        btn_launch.setEnabled(not running)
+        btn_launch.setEnabled(True if cmd.keep_alive else not running)
         btn_launch.setStyleSheet(
             "QPushButton { background:#2980b9; color:white; border-radius:3px; }"
             "QPushButton:disabled { background:#95a5a6; color:#ecf0f1; border-radius:3px; }"
@@ -358,7 +359,11 @@ class MainWindow(QMainWindow):
                 bl = aw.findChild(QPushButton, "btn_launch")
                 bk = aw.findChild(QPushButton, "btn_kill")
                 if bl:
-                    bl.setEnabled(not running)
+                    if cmd.keep_alive:
+                        bl.setEnabled(True)
+                        bl.setText(self.tr("Relancer") if running else self.tr("Lancer"))
+                    else:
+                        bl.setEnabled(not running)
                 if bk:
                     bk.setEnabled(running)
 
@@ -370,7 +375,7 @@ class MainWindow(QMainWindow):
         if not isinstance(name, str):
             return
         cmd = next((c for c in self.app_config.commands if c.name == name), None)
-        if cmd and not self.tunnel_manager.is_running(name):
+        if cmd and (cmd.keep_alive or not self.tunnel_manager.is_running(name)):
             self._launch_command(cmd)
 
     def _show_context_menu(self, pos):
@@ -387,8 +392,9 @@ class MainWindow(QMainWindow):
         running = self.tunnel_manager.is_running(name)
         menu = QMenu(self)
 
-        act_launch = menu.addAction(self.tr("Lancer"))
-        act_launch.setEnabled(not running)
+        act_launch_label = self.tr("Relancer") if (cmd.keep_alive and running) else self.tr("Lancer")
+        act_launch = menu.addAction(act_launch_label)
+        act_launch.setEnabled(cmd.keep_alive or not running)
         act_kill = menu.addAction(self.tr("Tuer"))
         act_kill.setEnabled(running)
         menu.addSeparator()

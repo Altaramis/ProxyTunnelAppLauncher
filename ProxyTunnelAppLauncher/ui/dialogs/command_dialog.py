@@ -135,6 +135,12 @@ class CommandDialog(QDialog):
         self.console_chk.setChecked(c.console if c else False)
         form_cmd.addRow("", self.console_chk)
 
+        self.keep_alive_chk = QCheckBox(
+            self.tr("Maintenir le tunnel ouvert après la fin de la commande")
+        )
+        self.keep_alive_chk.setChecked(c.keep_alive if c else False)
+        form_cmd.addRow("", self.keep_alive_chk)
+
         layout.addWidget(grp_cmd)
 
         btns = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok |
@@ -200,6 +206,7 @@ class CommandDialog(QDialog):
             command=cmd,
             order=0,
             console=self.console_chk.isChecked(),
+            keep_alive=self.keep_alive_chk.isChecked(),
         )
         self.accept()
 

@@ -101,6 +101,10 @@ Resolved: {}</translation>
         <translation>Open in a console window (SSH, telnet…)</translation>
     </message>
     <message>
+        <source>Maintenir le tunnel ouvert après la fin de la commande</source>
+        <translation>Keep tunnel open after the command ends</translation>
+    </message>
+    <message>
         <source>Sélectionner l'exécutable</source>
         <translation>Select executable</translation>
     </message>
@@ -294,6 +298,10 @@ Resolved: {}</translation>
     <message>
         <source>Lancer</source>
         <translation>Launch</translation>
+    </message>
+    <message>
+        <source>Relancer</source>
+        <translation>Relaunch</translation>
     </message>
     <message>
         <source>Tuer</source>

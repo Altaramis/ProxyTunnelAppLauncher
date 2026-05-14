@@ -144,6 +144,7 @@ A **theme selector** (System / Light / Dark) is available at the bottom right.
 | **SOCKS5 proxy** | Proxy profile to use (optional) |
 | **Command** | Template with placeholders (see below) |
 | **Interactive console** | Opens the command in its own console window — useful for SSH, telnet |
+| **Keep tunnel open** | Keeps the tunnel alive after the command ends — the tunnel stays active until "Kill" is clicked |
 
 #### Available placeholders
 
@@ -154,6 +155,17 @@ A **theme selector** (System / Light / Dark) is available at the bottom right.
 | `{variable_name}` | Any global variable defined in **Variables** |
 
 The editor provides **quick-insert buttons** and a **real-time resolved preview**.
+
+#### Keep tunnel open
+
+Some commands — typically a web browser or any program that hands off to an already-running process — exit immediately after launch, which would normally close the tunnel before any connection is made.
+
+Enabling **"Keep tunnel open after the command ends"** prevents this:
+
+- The tunnel **stays in "Running" state** regardless of the process lifetime
+- The **"Launch"** button becomes **"Relaunch"** when the tunnel is active, allowing the command to be run again without recreating the tunnel (same port is reused)
+- Only the **"Kill"** button closes the tunnel
+- **Double-click** and the **right-click menu** also allow relaunching the command
 
 ---
 
@@ -238,7 +250,8 @@ Stores proxy profiles and commands.
       "proxy": "My-Bastion",
       "command": "mstsc /v:{bind_ip}:{bind_port}",
       "order": 0,
-      "console": false
+      "console": false,
+      "keep_alive": false
     }
   ]
 }
@@ -527,6 +540,7 @@ Un sélecteur de **thème** (Système / Clair / Sombre) est disponible en bas à
 | **Proxy SOCKS5** | Profil proxy à utiliser (optionnel) |
 | **Commande** | Template avec placeholders (voir ci-dessous) |
 | **Console interactive** | Ouvre la commande dans sa propre fenêtre console — utile pour SSH, telnet |
+| **Maintenir le tunnel ouvert** | Garde le tunnel actif après la fin de la commande — l'arrêt se fait uniquement via "Tuer" |
 
 #### Placeholders disponibles dans la commande
 
@@ -537,6 +551,20 @@ Un sélecteur de **thème** (Système / Clair / Sombre) est disponible en bas à
 | `{nom_variable}` | Toute variable globale définie dans **Variables** |
 
 L'éditeur propose des **boutons d'insertion rapide** et un **aperçu résolu** en temps réel.
+
+#### Maintenir le tunnel ouvert
+
+Certaines commandes — typiquement un navigateur web ou tout programme qui transfère
+la main à un processus déjà en cours — se terminent immédiatement après le lancement,
+ce qui fermerait normalement le tunnel avant toute connexion réelle.
+
+Activer **"Maintenir le tunnel ouvert après la fin de la commande"** empêche ce comportement :
+
+- Le tunnel **reste en état "En cours"** quelle que soit la durée de vie du processus
+- Le bouton **"Lancer"** devient **"Relancer"** quand le tunnel est actif, permettant
+  de relancer la commande sans recréer le tunnel (même port réutilisé)
+- Seul le bouton **"Tuer"** ferme le tunnel
+- Le **double-clic** et le **menu contextuel** permettent aussi de relancer la commande
 
 ---
 
@@ -621,7 +649,8 @@ Stocke les profils proxy et les commandes.
       "proxy": "Mon-Bastion",
       "command": "mstsc /v:{bind_ip}:{bind_port}",
       "order": 0,
-      "console": false
+      "console": false,
+      "keep_alive": false
     }
   ]
 }

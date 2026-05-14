@@ -75,6 +75,7 @@ class CommandEntry:
     command: str
     order: int = 0
     console: bool = False
+    keep_alive: bool = False
 
     def to_dict(self) -> dict:
         return {
@@ -85,6 +86,7 @@ class CommandEntry:
             "command": self.command,
             "order": self.order,
             "console": self.console,
+            "keep_alive": self.keep_alive,
         }
 
     @staticmethod
@@ -97,6 +99,7 @@ class CommandEntry:
             command=d.get("command", ""),
             order=int(d.get("order", 0)),
             console=bool(d.get("console", False)),
+            keep_alive=bool(d.get("keep_alive", False)),
         )
 
 

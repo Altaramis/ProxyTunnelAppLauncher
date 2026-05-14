@@ -66,6 +66,8 @@ class TunnelSession:
     local_port: int
     forwarder: SimpleForwarder
     process: Optional[subprocess.Popen] = None
+    keep_alive: bool = False
+    killed: bool = False
 
 
 class TunnelManager(QObject):
@@ -93,6 +95,8 @@ class TunnelManager(QObject):
         return s.local_port if s else None
 
     def launch(self, cmd: CommandEntry, proxy: ProxyProfile) -> TunnelSession:
+        if cmd.name in self._sessions and cmd.keep_alive:
+            return self._relaunch_process(cmd)
         with self._lock:
             if cmd.name in self._sessions:
                 raise RuntimeError(self.tr("Commande '{}' déjà en cours d'exécution").format(cmd.name))
@@ -112,7 +116,8 @@ class TunnelManager(QObject):
 
         f.start()  # raises OSError if proxy unreachable or port busy
 
-        session = TunnelSession(command_name=cmd.name, local_port=port, forwarder=f)
+        session = TunnelSession(command_name=cmd.name, local_port=port, forwarder=f,
+                                keep_alive=cmd.keep_alive)
 
         with self._lock:
             self._sessions[cmd.name] = session
@@ -165,25 +170,77 @@ class TunnelManager(QObject):
 
     def kill(self, command_name: str):
         session = self._sessions.get(command_name)
-        if not session or not session.process:
+        if not session:
             return
-        if session.process.poll() is not None:
-            return
-        try:
-            session.process.terminate()
-            threading.Thread(
-                target=self._kill_after_timeout,
-                args=(session.process, command_name),
-                daemon=True,
-            ).start()
-        except Exception as e:
-            self.log_fn("ERROR", f"[{command_name}] erreur kill: {e}")
+        session.killed = True
+        if session.process and session.process.poll() is None:
+            try:
+                session.process.terminate()
+                threading.Thread(
+                    target=self._kill_after_timeout,
+                    args=(session.process, command_name),
+                    daemon=True,
+                ).start()
+            except Exception as e:
+                self.log_fn("ERROR", f"[{command_name}] erreur kill: {e}")
+        else:
+            self._teardown(command_name)
+            self.session_ended.emit(command_name)
 
     def stop_all(self):
         for name in list(self._sessions.keys()):
             self.kill(name)
 
     # ── Internal ──────────────────────────────────────────────────────────
+
+    def _relaunch_process(self, cmd: CommandEntry) -> TunnelSession:
+        """Relance uniquement la commande sur un tunnel keep_alive déjà actif."""
+        session = self._sessions[cmd.name]
+        if session.process and session.process.poll() is None:
+            try:
+                session.process.terminate()
+                session.process.wait(timeout=3)
+            except subprocess.TimeoutExpired:
+                session.process.kill()
+        session.killed = False
+        resolved_cmd = resolve_text(cmd.command, self.global_vars,
+                                    "127.0.0.1", str(session.local_port))
+        try:
+            args = shlex.split(resolved_cmd)
+            if cmd.console:
+                if sys.platform == "win32":
+                    proc = subprocess.Popen(args, creationflags=subprocess.CREATE_NEW_CONSOLE)
+                elif sys.platform == "darwin":
+                    proc = self._launch_console_macos(resolved_cmd)
+                else:
+                    proc = self._launch_console_linux(resolved_cmd)
+            else:
+                proc = subprocess.Popen(
+                    args,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                )
+        except Exception as e:
+            raise RuntimeError(self.tr("Impossible de lancer la commande : {}").format(e)) from e
+        session.process = proc
+        exe = os.path.splitext(os.path.basename(args[0]))[0] if args else cmd.name
+        self.log_fn("INFO", f"[{cmd.name}] relancé: {resolved_cmd}")
+        if not cmd.console:
+            for pipe, level in ((proc.stdout, "INFO"), (proc.stderr, "WARNING")):
+                threading.Thread(
+                    target=self._pipe_reader,
+                    args=(pipe, cmd.name, level, exe),
+                    daemon=True,
+                ).start()
+        threading.Thread(
+            target=self._process_watcher,
+            args=(session,),
+            daemon=True,
+        ).start()
+        return session
 
     def _allocate_port(self) -> int:
         rmin, rmax = self._port_range
@@ -263,8 +320,11 @@ class TunnelManager(QObject):
         code = session.process.returncode
         lvl = "INFO" if code == 0 else "WARNING"
         self.log_fn(lvl, f"[{session.command_name}] processus terminé (code {code})")
-        self._teardown(session.command_name)
-        self.session_ended.emit(session.command_name)
+        if session.keep_alive and not session.killed:
+            self.log_fn("INFO", f"[{session.command_name}] tunnel maintenu (keep_alive)")
+        else:
+            self._teardown(session.command_name)
+            self.session_ended.emit(session.command_name)
 
     def _pipe_reader(self, pipe, command_name: str, level: str, exe: str):
         try:
