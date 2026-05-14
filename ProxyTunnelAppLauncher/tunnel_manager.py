@@ -68,6 +68,7 @@ class TunnelSession:
     process: Optional[subprocess.Popen] = None
     keep_alive: bool = False
     killed: bool = False
+    _processes: list = field(default_factory=list)
 
 
 class TunnelManager(QObject):
@@ -149,6 +150,7 @@ class TunnelManager(QObject):
             raise RuntimeError(self.tr("Impossible de lancer la commande : {}").format(e)) from e
 
         session.process = proc
+        session._processes.append(proc)
         exe = os.path.splitext(os.path.basename(args[0]))[0] if args else cmd.name
         self.log_fn("INFO", f"[{cmd.name}] lancé: {resolved_cmd}")
 
@@ -162,7 +164,7 @@ class TunnelManager(QObject):
 
         threading.Thread(
             target=self._process_watcher,
-            args=(session,),
+            args=(session, proc),
             daemon=True,
         ).start()
 
@@ -173,16 +175,20 @@ class TunnelManager(QObject):
         if not session:
             return
         session.killed = True
-        if session.process and session.process.poll() is None:
-            try:
-                session.process.terminate()
+        with self._lock:
+            alive = [p for p in session._processes if p.poll() is None]
+        if alive:
+            for proc in alive:
+                try:
+                    proc.terminate()
+                except Exception as e:
+                    self.log_fn("ERROR", f"[{command_name}] erreur kill: {e}")
+            for proc in alive:
                 threading.Thread(
                     target=self._kill_after_timeout,
-                    args=(session.process, command_name),
+                    args=(proc, command_name),
                     daemon=True,
                 ).start()
-            except Exception as e:
-                self.log_fn("ERROR", f"[{command_name}] erreur kill: {e}")
         else:
             self._teardown(command_name)
             self.session_ended.emit(command_name)
@@ -194,15 +200,9 @@ class TunnelManager(QObject):
     # ── Internal ──────────────────────────────────────────────────────────
 
     def _relaunch_process(self, cmd: CommandEntry) -> TunnelSession:
-        """Relance uniquement la commande sur un tunnel keep_alive déjà actif."""
+        """Lance une nouvelle instance de la commande sur le tunnel keep_alive actif.
+        Les instances précédentes continuent de tourner."""
         session = self._sessions[cmd.name]
-        if session.process and session.process.poll() is None:
-            try:
-                session.process.terminate()
-                session.process.wait(timeout=3)
-            except subprocess.TimeoutExpired:
-                session.process.kill()
-        session.killed = False
         resolved_cmd = resolve_text(cmd.command, self.global_vars,
                                     "127.0.0.1", str(session.local_port))
         try:
@@ -226,6 +226,7 @@ class TunnelManager(QObject):
         except Exception as e:
             raise RuntimeError(self.tr("Impossible de lancer la commande : {}").format(e)) from e
         session.process = proc
+        session._processes.append(proc)
         exe = os.path.splitext(os.path.basename(args[0]))[0] if args else cmd.name
         self.log_fn("INFO", f"[{cmd.name}] relancé: {resolved_cmd}")
         if not cmd.console:
@@ -237,7 +238,7 @@ class TunnelManager(QObject):
                 ).start()
         threading.Thread(
             target=self._process_watcher,
-            args=(session,),
+            args=(session, proc),
             daemon=True,
         ).start()
         return session
@@ -315,16 +316,24 @@ class TunnelManager(QObject):
             session.forwarder.stop()
             self.log_fn("INFO", f"[{command_name}] tunnel fermé")
 
-    def _process_watcher(self, session: TunnelSession):
-        session.process.wait()
-        code = session.process.returncode
+    def _process_watcher(self, session: TunnelSession, proc):
+        proc.wait()
+        code = proc.returncode
         lvl = "INFO" if code == 0 else "WARNING"
         self.log_fn(lvl, f"[{session.command_name}] processus terminé (code {code})")
+        with self._lock:
+            try:
+                session._processes.remove(proc)
+            except ValueError:
+                pass
+            remaining = len(session._processes)
         if session.keep_alive and not session.killed:
             self.log_fn("INFO", f"[{session.command_name}] tunnel maintenu (keep_alive)")
-        else:
-            self._teardown(session.command_name)
-            self.session_ended.emit(session.command_name)
+            return
+        if remaining > 0:
+            return
+        self._teardown(session.command_name)
+        self.session_ended.emit(session.command_name)
 
     def _pipe_reader(self, pipe, command_name: str, level: str, exe: str):
         try:

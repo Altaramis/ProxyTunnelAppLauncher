@@ -144,7 +144,7 @@ A **theme selector** (System / Light / Dark) is available at the bottom right.
 | **SOCKS5 proxy** | Proxy profile to use (optional) |
 | **Command** | Template with placeholders (see below) |
 | **Interactive console** | Opens the command in its own console window — useful for SSH, telnet |
-| **Keep tunnel open** | Keeps the tunnel alive after the command ends — the tunnel stays active until "Kill" is clicked |
+| **Keep tunnel open** | Keeps the tunnel alive regardless of the command's lifetime — the tunnel stays active until "Kill" is clicked |
 
 #### Available placeholders
 
@@ -160,7 +160,7 @@ The editor provides **quick-insert buttons** and a **real-time resolved preview*
 
 Some commands — typically a web browser or any program that hands off to an already-running process — exit immediately after launch, which would normally close the tunnel before any connection is made.
 
-Enabling **"Keep tunnel open after the command ends"** prevents this:
+Enabling **"Keep tunnel open"** prevents this:
 
 - The tunnel **stays in "Running" state** regardless of the process lifetime
 - The **"Launch"** button becomes **"Relaunch"** when the tunnel is active, allowing the command to be run again without recreating the tunnel (same port is reused)
@@ -540,7 +540,7 @@ Un sélecteur de **thème** (Système / Clair / Sombre) est disponible en bas à
 | **Proxy SOCKS5** | Profil proxy à utiliser (optionnel) |
 | **Commande** | Template avec placeholders (voir ci-dessous) |
 | **Console interactive** | Ouvre la commande dans sa propre fenêtre console — utile pour SSH, telnet |
-| **Maintenir le tunnel ouvert** | Garde le tunnel actif après la fin de la commande — l'arrêt se fait uniquement via "Tuer" |
+| **Maintenir le tunnel ouvert** | Garde le tunnel actif indépendamment de la durée de vie de la commande — l'arrêt se fait uniquement via "Tuer" |
 
 #### Placeholders disponibles dans la commande
 
@@ -558,7 +558,7 @@ Certaines commandes — typiquement un navigateur web ou tout programme qui tran
 la main à un processus déjà en cours — se terminent immédiatement après le lancement,
 ce qui fermerait normalement le tunnel avant toute connexion réelle.
 
-Activer **"Maintenir le tunnel ouvert après la fin de la commande"** empêche ce comportement :
+Activer **"Maintenir le tunnel ouvert"** empêche ce comportement :
 
 - Le tunnel **reste en état "En cours"** quelle que soit la durée de vie du processus
 - Le bouton **"Lancer"** devient **"Relancer"** quand le tunnel est actif, permettant

@@ -101,8 +101,8 @@ Resolved: {}</translation>
         <translation>Open in a console window (SSH, telnet…)</translation>
     </message>
     <message>
-        <source>Maintenir le tunnel ouvert après la fin de la commande</source>
-        <translation>Keep tunnel open after the command ends</translation>
+        <source>Maintenir le tunnel ouvert</source>
+        <translation>Keep tunnel open</translation>
     </message>
     <message>
         <source>Sélectionner l'exécutable</source>
