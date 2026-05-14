@@ -1,6 +1,6 @@
 # Données locales sensibles — ne pas publier
-configs.json
-settings.json
+configs*.json
+settings*.json
 
 # Logs
 *.log
