@@ -22,7 +22,8 @@ def main():
     settings = load_settings()
     if settings.language != "fr_FR":
         if getattr(sys, "frozen", False):
-            base = os.path.dirname(sys.executable)
+            # PyInstaller extrait dans sys._MEIPASS ; Nuitka place les fichiers à côté de l'exe
+            base = getattr(sys, "_MEIPASS", os.path.dirname(sys.executable))
         else:
             base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         qm_path = os.path.join(base, "translations", f"{settings.language}.qm")

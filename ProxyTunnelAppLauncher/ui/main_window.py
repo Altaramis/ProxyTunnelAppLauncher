@@ -101,7 +101,8 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(f"ProxyTunnel AppLauncher  v{__version__}")
         self.resize(1100, 660)
         if getattr(sys, "frozen", False):
-            _logo_dir = os.path.dirname(sys.executable)
+            # PyInstaller extrait dans sys._MEIPASS ; Nuitka place les fichiers à côté de l'exe
+            _logo_dir = getattr(sys, "_MEIPASS", os.path.dirname(sys.executable))
         else:
             _logo_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         _logo_path = os.path.join(_logo_dir, "logo.png")
