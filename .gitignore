@@ -1,6 +1,7 @@
 # Données locales sensibles — ne pas publier
 configs*.json
 settings*.json
+ToDo.md
 
 # Logs
 *.log
