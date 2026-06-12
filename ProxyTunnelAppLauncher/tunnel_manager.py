@@ -67,6 +67,7 @@ class TunnelSession:
     forwarder: SimpleForwarder
     process: Optional[subprocess.Popen] = None
     keep_alive: bool = False
+    keep_app_on_kill: bool = False
     killed: bool = False
     _processes: list = field(default_factory=list)
 
@@ -103,7 +104,7 @@ class TunnelManager(QObject):
                 self._sessions[new_name] = session
 
     def launch(self, cmd: CommandEntry, proxy: ProxyProfile) -> TunnelSession:
-        if cmd.name in self._sessions and cmd.keep_alive:
+        if cmd.name in self._sessions and (cmd.keep_alive or cmd.no_auto_cmd):
             return self._relaunch_process(cmd)
         with self._lock:
             if cmd.name in self._sessions:
@@ -125,15 +126,20 @@ class TunnelManager(QObject):
         f.start()  # raises OSError if proxy unreachable or port busy
 
         session = TunnelSession(command_name=cmd.name, local_port=port, forwarder=f,
-                                keep_alive=cmd.keep_alive)
+                                keep_alive=cmd.keep_alive or cmd.no_auto_cmd,
+                                keep_app_on_kill=cmd.keep_app_on_kill)
 
         with self._lock:
             self._sessions[cmd.name] = session
 
-        resolved_cmd = resolve_text(cmd.command, self.global_vars, "127.0.0.1", str(port))
         self.log_fn("INFO", f"[{cmd.name}] tunnel 127.0.0.1:{port} → "
                             f"{cmd.target_host}:{cmd.target_port}")
 
+        if cmd.no_auto_cmd:
+            self.log_fn("INFO", f"[{cmd.name}] démarrage sans commande (no_auto_cmd)")
+            return session
+
+        resolved_cmd = resolve_text(cmd.command, self.global_vars, "127.0.0.1", str(port))
         try:
             args = shlex.split(resolved_cmd)
             if cmd.console:
@@ -182,6 +188,10 @@ class TunnelManager(QObject):
         if not session:
             return
         session.killed = True
+        if session.keep_app_on_kill:
+            self._teardown(command_name)
+            self.session_ended.emit(command_name)
+            return
         with self._lock:
             alive = [p for p in session._processes if p.poll() is None]
         if alive:

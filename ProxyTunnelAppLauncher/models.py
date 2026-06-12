@@ -77,6 +77,8 @@ class CommandEntry:
     console: bool = False
     keep_alive: bool = False
     local_port: Optional[int] = None
+    keep_app_on_kill: bool = False
+    no_auto_cmd: bool = False
 
     def to_dict(self) -> dict:
         return {
@@ -89,6 +91,8 @@ class CommandEntry:
             "console": self.console,
             "keep_alive": self.keep_alive,
             "local_port": self.local_port,
+            "keep_app_on_kill": self.keep_app_on_kill,
+            "no_auto_cmd": self.no_auto_cmd,
         }
 
     @staticmethod
@@ -103,6 +107,8 @@ class CommandEntry:
             console=bool(d.get("console", False)),
             keep_alive=bool(d.get("keep_alive", False)),
             local_port=int(d["local_port"]) if d.get("local_port") else None,
+            keep_app_on_kill=bool(d.get("keep_app_on_kill", False)),
+            no_auto_cmd=bool(d.get("no_auto_cmd", False)),
         )
 
 

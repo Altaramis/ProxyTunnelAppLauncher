@@ -343,10 +343,11 @@ class MainWindow(QMainWindow):
         w, lay = _action_widget()
         running = self.tunnel_manager.is_running(cmd.name)
 
-        launch_label = self.tr("Relancer") if (cmd.keep_alive and running) else self.tr("Lancer")
+        relaunch_mode = cmd.keep_alive or cmd.no_auto_cmd
+        launch_label = self.tr("Relancer") if (relaunch_mode and running) else self.tr("Lancer")
         btn_launch = QPushButton(launch_label)
         btn_launch.setObjectName("btn_launch")
-        btn_launch.setEnabled(True if cmd.keep_alive else not running)
+        btn_launch.setEnabled(True if relaunch_mode else not running)
         btn_launch.setStyleSheet(
             "QPushButton { background:#2980b9; color:white; border-radius:3px; }"
             "QPushButton:disabled { background:#95a5a6; color:#ecf0f1; border-radius:3px; }"
@@ -410,7 +411,8 @@ class MainWindow(QMainWindow):
                 bl = aw.findChild(QPushButton, "btn_launch")
                 bk = aw.findChild(QPushButton, "btn_kill")
                 if bl:
-                    if cmd.keep_alive:
+                    relaunch_mode = cmd.keep_alive or cmd.no_auto_cmd
+                    if relaunch_mode:
                         bl.setEnabled(True)
                         bl.setText(self.tr("Relancer") if running else self.tr("Lancer"))
                     else:
@@ -426,7 +428,7 @@ class MainWindow(QMainWindow):
         if not isinstance(name, str):
             return
         cmd = next((c for c in self.app_config.commands if c.name == name), None)
-        if cmd and (cmd.keep_alive or not self.tunnel_manager.is_running(name)):
+        if cmd and ((cmd.keep_alive or cmd.no_auto_cmd) or not self.tunnel_manager.is_running(name)):
             self._launch_command(cmd)
 
     def _show_context_menu(self, pos):

@@ -156,6 +156,26 @@ class CommandDialog(QDialog):
         self.keep_alive_chk.setChecked(c.keep_alive if c else False)
         form_cmd.addRow("", self.keep_alive_chk)
 
+        self.no_auto_cmd_chk = QCheckBox(self.tr("Démarrer le tunnel sans lancer la commande"))
+        self.no_auto_cmd_chk.setChecked(bool(c and c.no_auto_cmd))
+        self.no_auto_cmd_chk.setToolTip(self.tr(
+            "Au premier Lancer, seul le tunnel démarre.\n"
+            "Utiliser Relancer pour ouvrir l'application."
+        ))
+        self.no_auto_cmd_chk.toggled.connect(self._on_no_auto_cmd_toggled)
+        form_cmd.addRow("", self.no_auto_cmd_chk)
+
+        self.keep_app_on_kill_chk = QCheckBox(self.tr("Ne pas fermer l'application au Tuer"))
+        self.keep_app_on_kill_chk.setChecked(bool(c and c.keep_app_on_kill))
+        self.keep_app_on_kill_chk.setToolTip(self.tr(
+            "Seul le tunnel est arrêté. L'application continue de tourner."
+        ))
+        form_cmd.addRow("", self.keep_app_on_kill_chk)
+
+        if c and c.no_auto_cmd:
+            self.keep_alive_chk.setChecked(True)
+            self.keep_alive_chk.setEnabled(False)
+
         layout.addWidget(grp_cmd)
 
         btns = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok |
@@ -165,6 +185,13 @@ class CommandDialog(QDialog):
         layout.addWidget(btns)
 
         self._update_preview()
+
+    def _on_no_auto_cmd_toggled(self, checked: bool):
+        if checked:
+            self.keep_alive_chk.setChecked(True)
+            self.keep_alive_chk.setEnabled(False)
+        else:
+            self.keep_alive_chk.setEnabled(True)
 
     def _insert_var(self, var: str):
         pos = self.cmd_edit.cursorPosition()
@@ -214,6 +241,7 @@ class CommandDialog(QDialog):
             return
         proxy = self.proxy_combo.currentData() or ""
         local_port = self.local_port_spin.value() if self.local_port_chk.isChecked() else None
+        no_auto_cmd = self.no_auto_cmd_chk.isChecked()
         self.result_command = CommandEntry(
             name=name,
             target_host=target_host,
@@ -222,8 +250,10 @@ class CommandDialog(QDialog):
             command=cmd,
             order=0,
             console=self.console_chk.isChecked(),
-            keep_alive=self.keep_alive_chk.isChecked(),
+            keep_alive=self.keep_alive_chk.isChecked() or no_auto_cmd,
             local_port=local_port,
+            keep_app_on_kill=self.keep_app_on_kill_chk.isChecked(),
+            no_auto_cmd=no_auto_cmd,
         )
         self.accept()
 

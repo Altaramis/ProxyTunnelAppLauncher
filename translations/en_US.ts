@@ -133,6 +133,24 @@ Resolved: {}</translation>
         <translation>The command cannot be empty.</translation>
     </message>
     <message>
+        <source>Démarrer le tunnel sans lancer la commande</source>
+        <translation>Start tunnel without launching the command</translation>
+    </message>
+    <message>
+        <source>Au premier Lancer, seul le tunnel démarre.
+Utiliser Relancer pour ouvrir l'application.</source>
+        <translation>On first Launch, only the tunnel starts.
+Use Relaunch to open the application.</translation>
+    </message>
+    <message>
+        <source>Ne pas fermer l'application au Tuer</source>
+        <translation>Do not close the application on Kill</translation>
+    </message>
+    <message>
+        <source>Seul le tunnel est arrêté. L'application continue de tourner.</source>
+        <translation>Only the tunnel is stopped. The application keeps running.</translation>
+    </message>
+    <message>
         <source>Fixer le port local</source>
         <translation>Fix local port</translation>
     </message>
