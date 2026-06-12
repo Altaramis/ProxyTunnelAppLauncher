@@ -7,6 +7,7 @@ import logging
 import logging.handlers
 import os
 import queue
+import sys
 import time
 from typing import Optional
 
@@ -99,8 +100,13 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle(f"ProxyTunnel AppLauncher  v{__version__}")
         self.resize(1100, 660)
-        if os.path.exists("logo.png"):
-            self.setWindowIcon(QIcon("logo.png"))
+        if getattr(sys, "frozen", False):
+            _logo_dir = os.path.dirname(sys.executable)
+        else:
+            _logo_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        _logo_path = os.path.join(_logo_dir, "logo.png")
+        if os.path.exists(_logo_path):
+            self.setWindowIcon(QIcon(_logo_path))
 
         self.settings = load_settings(self.SETTINGS_FILE)
         self.app_config = AppConfig()
@@ -117,6 +123,8 @@ class MainWindow(QMainWindow):
         self._file_logger = logging.getLogger("ProxyTunnelAppLauncher")
         self._reconfigure_file_logger()
 
+        self._sort_col: int = -1
+        self._sort_dir: int = 1
         self._build_ui()
         self._apply_theme(self.settings.theme)
         self._load_default_config()
@@ -146,13 +154,16 @@ class MainWindow(QMainWindow):
         ])
         hdr = self.tree.header()
         hdr.setSectionResizeMode(COL_NAME,    QHeaderView.ResizeMode.Interactive)
-        hdr.setSectionResizeMode(COL_STATUS,  QHeaderView.ResizeMode.Fixed)
+        hdr.setSectionResizeMode(COL_STATUS,  QHeaderView.ResizeMode.Interactive)
         hdr.setSectionResizeMode(COL_TARGET,  QHeaderView.ResizeMode.Interactive)
-        hdr.setSectionResizeMode(COL_PROXY,   QHeaderView.ResizeMode.Stretch)
+        hdr.setSectionResizeMode(COL_PROXY,   QHeaderView.ResizeMode.Interactive)
         hdr.setSectionResizeMode(COL_ACTIONS, QHeaderView.ResizeMode.ResizeToContents)
         self.tree.setColumnWidth(COL_NAME,   170)
         self.tree.setColumnWidth(COL_STATUS, 170)
         self.tree.setColumnWidth(COL_TARGET, 160)
+        self.tree.setColumnWidth(COL_PROXY,  140)
+        hdr.setSectionsClickable(True)
+        hdr.sectionClicked.connect(self._on_header_clicked)
         self.tree.setIndentation(0)
         self.tree.setUniformRowHeights(False)
         self.tree.commands_reordered.connect(self._on_commands_reordered)
@@ -234,12 +245,51 @@ class MainWindow(QMainWindow):
             palette.color(QPalette.ColorRole.Base),
             palette.color(QPalette.ColorRole.AlternateBase),
         )
-        for idx, cmd in enumerate(self.app_config.commands):
+        cmds = list(self.app_config.commands)
+        if self._sort_col != -1:
+            cmds = sorted(cmds, key=self._sort_key(self._sort_col),
+                          reverse=(self._sort_dir == -1))
+        for idx, cmd in enumerate(cmds):
             bg = bg_colors[idx % 2]
             item = self._make_command_item(cmd, bg)
             self.tree.addTopLevelItem(item)
             self.tree.setItemWidget(item, COL_STATUS, self._make_status_widget(cmd))
             self.tree.setItemWidget(item, COL_ACTIONS, self._make_action_widget(cmd))
+
+    def _on_header_clicked(self, col: int):
+        if col == COL_ACTIONS:
+            return
+        hdr = self.tree.header()
+        if self._sort_col == col:
+            if self._sort_dir == 1:
+                self._sort_dir = -1
+            else:
+                self._sort_col = -1
+                hdr.setSortIndicatorShown(False)
+                self.tree.setDragEnabled(True)
+                self.tree.setAcceptDrops(True)
+                self._rebuild_tree()
+                return
+        else:
+            self._sort_col = col
+            self._sort_dir = 1
+        hdr.setSortIndicatorShown(True)
+        hdr.setSortIndicator(col, Qt.SortOrder.AscendingOrder if self._sort_dir == 1
+                             else Qt.SortOrder.DescendingOrder)
+        self.tree.setDragEnabled(False)
+        self.tree.setAcceptDrops(False)
+        self._rebuild_tree()
+
+    def _sort_key(self, col):
+        if col == COL_NAME:
+            return lambda c: c.name.lower()
+        if col == COL_STATUS:
+            return lambda c: 0 if self.tunnel_manager.is_running(c.name) else 1
+        if col == COL_TARGET:
+            return lambda c: f"{c.target_host}:{c.target_port:05d}"
+        if col == COL_PROXY:
+            return lambda c: c.proxy.lower()
+        return lambda c: 0
 
     def _make_command_item(self, cmd: CommandEntry, bg: QColor):
         from PyQt6.QtWidgets import QTreeWidgetItem
@@ -465,6 +515,8 @@ class MainWindow(QMainWindow):
             idx = next((i for i, c in enumerate(self.app_config.commands) if c.name == cmd.name), None)
             if idx is not None:
                 self.app_config.commands[idx] = new_cmd
+            if cmd.name != new_cmd.name:
+                self.tunnel_manager.rename_session(cmd.name, new_cmd.name)
             self._rebuild_tree()
 
     def _duplicate_command(self, cmd: CommandEntry):

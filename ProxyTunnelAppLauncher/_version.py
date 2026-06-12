@@ -1,3 +1,3 @@
 # Copyright (C) 2026 Altaramis
 # SPDX-License-Identifier: GPL-3.0-or-later
-__version__ = "0.2.2"
+__version__ = "0.3.0"

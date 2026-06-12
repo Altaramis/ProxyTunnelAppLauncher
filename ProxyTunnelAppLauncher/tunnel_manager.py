@@ -95,13 +95,20 @@ class TunnelManager(QObject):
         s = self._sessions.get(command_name)
         return s.local_port if s else None
 
+    def rename_session(self, old_name: str, new_name: str) -> None:
+        with self._lock:
+            if old_name in self._sessions:
+                session = self._sessions.pop(old_name)
+                session.command_name = new_name
+                self._sessions[new_name] = session
+
     def launch(self, cmd: CommandEntry, proxy: ProxyProfile) -> TunnelSession:
         if cmd.name in self._sessions and cmd.keep_alive:
             return self._relaunch_process(cmd)
         with self._lock:
             if cmd.name in self._sessions:
                 raise RuntimeError(self.tr("Commande '{}' déjà en cours d'exécution").format(cmd.name))
-            port = self._allocate_port()
+            port = cmd.local_port if cmd.local_port else self._allocate_port()
 
         f = SimpleForwarder(
             listen_host="127.0.0.1",

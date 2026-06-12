@@ -54,6 +54,23 @@ class CommandDialog(QDialog):
         self.target_port_spin.setValue(c.target_port if c else 3389)
         form_target.addRow(self.tr("Port distant"), self.target_port_spin)
 
+        local_port_row = QWidget()
+        local_port_lay = QHBoxLayout(local_port_row)
+        local_port_lay.setContentsMargins(0, 0, 0, 0)
+        local_port_lay.setSpacing(6)
+        self.local_port_chk = QCheckBox(self.tr("Fixer le port local"))
+        self.local_port_spin = QSpinBox()
+        self.local_port_spin.setRange(1, 65535)
+        self.local_port_spin.setValue(c.local_port if (c and c.local_port) else 1080)
+        self.local_port_spin.setEnabled(bool(c and c.local_port))
+        self.local_port_chk.setChecked(bool(c and c.local_port))
+        self.local_port_chk.toggled.connect(self.local_port_spin.setEnabled)
+        local_port_lay.addWidget(self.local_port_chk)
+        local_port_lay.addWidget(self.local_port_spin)
+        local_port_lay.addWidget(QLabel(self.tr("— dynamique si décoché")))
+        local_port_lay.addStretch()
+        form_target.addRow(self.tr("Port local"), local_port_row)
+
         self.proxy_combo = QComboBox()
         self.proxy_combo.addItem(self.tr("— Aucun proxy —"), "")
         for proxy in self._proxies:
@@ -196,6 +213,7 @@ class CommandDialog(QDialog):
             QMessageBox.warning(self, self.tr("Erreur"), self.tr("La commande ne peut pas être vide."))
             return
         proxy = self.proxy_combo.currentData() or ""
+        local_port = self.local_port_spin.value() if self.local_port_chk.isChecked() else None
         self.result_command = CommandEntry(
             name=name,
             target_host=target_host,
@@ -205,6 +223,7 @@ class CommandDialog(QDialog):
             order=0,
             console=self.console_chk.isChecked(),
             keep_alive=self.keep_alive_chk.isChecked(),
+            local_port=local_port,
         )
         self.accept()
 

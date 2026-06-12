@@ -132,6 +132,18 @@ Resolved: {}</translation>
         <source>La commande ne peut pas être vide.</source>
         <translation>The command cannot be empty.</translation>
     </message>
+    <message>
+        <source>Fixer le port local</source>
+        <translation>Fix local port</translation>
+    </message>
+    <message>
+        <source>— dynamique si décoché</source>
+        <translation>— dynamic if unchecked</translation>
+    </message>
+    <message>
+        <source>Port local</source>
+        <translation>Local port</translation>
+    </message>
 </context>
 <context>
     <name>ImportDialog</name>
