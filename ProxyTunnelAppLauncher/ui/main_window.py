@@ -162,6 +162,7 @@ class MainWindow(QMainWindow):
         self.tree.setColumnWidth(COL_STATUS, 170)
         self.tree.setColumnWidth(COL_TARGET, 160)
         self.tree.setColumnWidth(COL_PROXY,  140)
+        hdr.setSectionsMovable(False)
         hdr.setSectionsClickable(True)
         hdr.sectionClicked.connect(self._on_header_clicked)
         self.tree.setIndentation(0)
