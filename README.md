@@ -24,9 +24,9 @@ Each command is configured with:
 - a **command template** using `{bind_ip}` and `{bind_port}` placeholders
 
 When a command is launched, the app:
-1. Allocates a random **local port** within the configured range
-2. Creates a **TCP tunnel**: `127.0.0.1:<auto_port>` → `remote_target` via the SOCKS5 proxy
-3. Resolves placeholders and **runs the command**
+1. Allocates a **local port** (random within the configured range, or a fixed port if set)
+2. Creates a **TCP tunnel**: `127.0.0.1:<port>` → `remote_target` via the SOCKS5 proxy
+3. Resolves placeholders and **runs the command** (unless "start tunnel only" is enabled)
 4. **Tears down the tunnel** automatically when the process exits
 
 **RDP example:**
@@ -114,6 +114,10 @@ The central table lists all configured commands:
 | **Proxy** | Associated proxy profile (red if not found) |
 | **Actions** | Launch / Kill / Edit buttons |
 
+All columns except **Actions** are **resizable** by dragging their border. Column order is fixed.
+
+**Click a column header** to sort: ascending → descending → user order (drag-and-drop). Drag-and-drop reordering is disabled while a sort is active.
+
 **Double-click** a stopped command to launch it directly.  
 **Right-click** for: Launch, Kill, Edit, Duplicate, Delete.
 
@@ -141,10 +145,13 @@ A **theme selector** (System / Light / Dark) is available at the bottom right.
 | **Name** | Unique label shown in the table |
 | **Remote IP** | Target remote host |
 | **Remote port** | Target remote port |
+| **Local port** | Fixed local port (optional) — if unchecked, a random port from the configured range is used |
 | **SOCKS5 proxy** | Proxy profile to use (optional) |
 | **Command** | Template with placeholders (see below) |
 | **Interactive console** | Opens the command in its own console window — useful for SSH, telnet |
 | **Keep tunnel open** | Keeps the tunnel alive regardless of the command's lifetime — the tunnel stays active until "Kill" is clicked |
+| **Start tunnel without launching the command** | On first "Launch", only the tunnel starts — use "Relaunch" to open the application. Implies "Keep tunnel open". |
+| **Do not close the application on Kill** | Only the tunnel is stopped; the launched application keeps running |
 
 #### Available placeholders
 
@@ -166,6 +173,19 @@ Enabling **"Keep tunnel open"** prevents this:
 - The **"Launch"** button becomes **"Relaunch"** when the tunnel is active, allowing the command to be run again without recreating the tunnel (same port is reused)
 - Only the **"Kill"** button closes the tunnel
 - **Double-click** and the **right-click menu** also allow relaunching the command
+
+#### Start tunnel without launching the command
+
+Useful when the application is already open (e.g. a browser with the page loaded) and only the tunnel needs to be (re)started — no new window should open.
+
+- **First "Launch"**: only the tunnel starts, no command is executed
+- **"Relaunch"**: executes the command (opens the application)
+- Combines naturally with a **fixed local port**: the browser always finds the tunnel on the same port
+- Automatically implies **"Keep tunnel open"**
+
+#### Do not close the application on Kill
+
+When enabled, clicking **"Kill"** stops only the tunnel (forwarder). The launched process — browser, SSH session, etc. — keeps running untouched.
 
 ---
 
@@ -251,7 +271,10 @@ Stores proxy profiles and commands.
       "command": "mstsc /v:{bind_ip}:{bind_port}",
       "order": 0,
       "console": false,
-      "keep_alive": false
+      "keep_alive": false,
+      "local_port": null,
+      "keep_app_on_kill": false,
+      "no_auto_cmd": false
     }
   ]
 }
@@ -420,9 +443,9 @@ Chaque commande est configurée avec :
 - une **commande** à exécuter, avec les placeholders `{bind_ip}` et `{bind_port}`
 
 Au lancement d'une commande, l'application :
-1. Alloue automatiquement un **port local aléatoire** dans la plage configurée
-2. Crée un **tunnel TCP** : `127.0.0.1:<port_auto>` → `cible_distante` via le proxy SOCKS5
-3. Résout les placeholders et **exécute la commande**
+1. Alloue un **port local** (aléatoire dans la plage configurée, ou fixe si défini)
+2. Crée un **tunnel TCP** : `127.0.0.1:<port>` → `cible_distante` via le proxy SOCKS5
+3. Résout les placeholders et **exécute la commande** (sauf si "démarrage sans commande" est activé)
 4. **Détruit le tunnel** automatiquement quand le processus se termine
 
 **Exemple RDP :**
@@ -505,10 +528,14 @@ Le tableau central liste toutes les commandes configurées avec les colonnes :
 | Colonne | Description |
 |---------|-------------|
 | **Nom** | Label de la commande |
-| **Statut** | En cours / Arrêté, port local alloué affiché si actif |
+| **Statut** | En cours / Arrêté, port local affiché si actif |
 | **Cible** | `host:port` distant |
 | **Proxy** | Profil proxy associé (en rouge si introuvable) |
 | **Actions** | Boutons Lancer / Tuer / Modifier |
+
+Toutes les colonnes sauf **Actions** sont **redimensionnables** par glisser-déposer sur leur bord. L'ordre des colonnes est fixe.
+
+**Cliquer sur un en-tête de colonne** pour trier : ascendant → descendant → ordre utilisateur (drag-and-drop). Le réordonnancement par glisser-déposer est désactivé pendant un tri actif.
 
 **Double-clic** sur une commande arrêtée pour la lancer directement.  
 **Clic droit** pour accéder à : Lancer, Tuer, Modifier, Dupliquer, Supprimer.
@@ -537,10 +564,13 @@ Un sélecteur de **thème** (Système / Clair / Sombre) est disponible en bas à
 | **Nom** | Label unique affiché dans le tableau |
 | **IP distante** | Hôte cible distant |
 | **Port distant** | Port cible distant |
+| **Port local** | Port local fixe (optionnel) — si décoché, un port aléatoire de la plage configurée est utilisé |
 | **Proxy SOCKS5** | Profil proxy à utiliser (optionnel) |
 | **Commande** | Template avec placeholders (voir ci-dessous) |
 | **Console interactive** | Ouvre la commande dans sa propre fenêtre console — utile pour SSH, telnet |
 | **Maintenir le tunnel ouvert** | Garde le tunnel actif indépendamment de la durée de vie de la commande — l'arrêt se fait uniquement via "Tuer" |
+| **Démarrer le tunnel sans lancer la commande** | Au premier "Lancer", seul le tunnel démarre — utiliser "Relancer" pour ouvrir l'application. Implique "Maintenir le tunnel ouvert". |
+| **Ne pas fermer l'application au Tuer** | Seul le tunnel est arrêté ; l'application lancée continue de tourner |
 
 #### Placeholders disponibles dans la commande
 
@@ -565,6 +595,22 @@ Activer **"Maintenir le tunnel ouvert"** empêche ce comportement :
   de relancer la commande sans recréer le tunnel (même port réutilisé)
 - Seul le bouton **"Tuer"** ferme le tunnel
 - Le **double-clic** et le **menu contextuel** permettent aussi de relancer la commande
+
+#### Démarrer le tunnel sans lancer la commande
+
+Utile quand l'application est déjà ouverte (ex : navigateur avec la page chargée) et
+que seul le tunnel doit être (re)démarré — sans ouvrir une nouvelle fenêtre.
+
+- **Premier "Lancer"** : seul le tunnel démarre, aucune commande n'est exécutée
+- **"Relancer"** : exécute la commande (ouvre l'application)
+- Se combine naturellement avec un **port local fixe** : le navigateur retrouve toujours
+  le tunnel sur le même port
+- Implique automatiquement **"Maintenir le tunnel ouvert"**
+
+#### Ne pas fermer l'application au Tuer
+
+Quand cette option est activée, cliquer sur **"Tuer"** arrête uniquement le tunnel
+(forwarder). Le processus lancé — navigateur, session SSH, etc. — continue de tourner.
 
 ---
 
@@ -650,7 +696,10 @@ Stocke les profils proxy et les commandes.
       "command": "mstsc /v:{bind_ip}:{bind_port}",
       "order": 0,
       "console": false,
-      "keep_alive": false
+      "keep_alive": false,
+      "local_port": null,
+      "keep_app_on_kill": false,
+      "no_auto_cmd": false
     }
   ]
 }
